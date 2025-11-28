@@ -1,0 +1,46 @@
+﻿@{
+    ViewData["Title"] = "Approve User";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<h1 class="h3 mb-4 text-gray-800">Approve User</h1>
+
+<div class="row">
+    <div class="col-lg-6">
+
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">User Approval</h6>
+            </div>
+
+            <div class="card-body">
+
+                <p class="mb-4">
+                    You are about to approve the selected user.
+                    <br />
+                    <strong>Once approved, the user will gain full system access.</strong>
+                </p>
+
+                <!-- Fake User Info -->
+                <div class="border rounded p-3 mb-4 bg-light">
+                    <p><strong>Name:</strong> John Doe</p>
+                    <p><strong>Email:</strong> john@example.com</p>
+                    <p><strong>Registration Date:</strong> 2024-10-05</p>
+                    <p><strong>Status:</strong> <span class="badge badge-warning">Pending</span></p>
+                </div>
+
+                <!-- Approve Button -->
+                <a href="/User/List" class="btn btn-success btn-block mb-2">
+                    <i class="fas fa-check mr-1"></i> Approve User
+                </a>
+
+                <!-- Cancel Button -->
+                <a href="/User/List" class="btn btn-secondary btn-block">
+                    <i class="fas fa-arrow-left mr-1"></i> Back to User List
+                </a>
+
+            </div>
+        </div>
+
+    </div>
+</div>

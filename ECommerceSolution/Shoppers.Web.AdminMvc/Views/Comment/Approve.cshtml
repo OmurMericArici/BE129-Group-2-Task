@@ -1,0 +1,50 @@
+﻿@{
+    ViewData["Title"] = "Approve Comment";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<h1 class="h3 mb-4 text-gray-800">Approve Comment</h1>
+
+<div class="row">
+    <div class="col-lg-7">
+
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">Comment Information</h6>
+            </div>
+
+            <div class="card-body">
+
+                <!-- Fake Data (çünkü model yok) -->
+                <div class="mb-3">
+                    <label class="font-weight-bold">User</label>
+                    <div class="form-control bg-light">John Doe</div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="font-weight-bold">Comment</label>
+                    <textarea class="form-control bg-light" rows="3" readonly>
+Great product, fast delivery! Thank you!
+                    </textarea>
+                </div>
+
+                <div class="mb-3">
+                    <label class="font-weight-bold">Date</label>
+                    <div class="form-control bg-light">2025-11-21</div>
+                </div>
+
+                <!-- Approve Button -->
+                <a href="/Comment/List" class="btn btn-success btn-block">
+                    <i class="fas fa-check mr-1"></i> Approve Comment
+                </a>
+
+                <!-- Cancel Button -->
+                <a href="/Comment/List" class="btn btn-secondary btn-block mt-2">
+                    <i class="fas fa-arrow-left mr-1"></i> Back to List
+                </a>
+
+            </div>
+        </div>
+
+    </div>
+</div>

@@ -1,0 +1,71 @@
+﻿@{
+    ViewData["Title"] = "User List";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<h1 class="h3 mb-4 text-gray-800">Users</h1>
+
+<div class="card shadow mb-4">
+    <div class="card-header py-3 d-flex justify-content-between align-items-center">
+        <h6 class="m-0 font-weight-bold text-primary">Registered Users</h6>
+    </div>
+
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-bordered">
+                <thead class="thead-light">
+                    <tr>
+                        <th style="width: 50px;">#</th>
+                        <th>Name</th>
+                        <th>Email</th>
+                        <th>Registered Date</th>
+                        <th>Status</th>
+                        <th style="width:150px;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Fake Data (örnek doldurma, backend yok) -->
+                    <tr>
+                        <td>1</td>
+                        <td>John Doe</td>
+                        <td>john@example.com</td>
+                        <td>2024-09-12</td>
+                        <td><span class="badge badge-success">Active</span></td>
+                        <td>
+                            <a href="/User/Approve" class="btn btn-success btn-sm">
+                                <i class="fas fa-check"></i> Approve
+                            </a>
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <td>2</td>
+                        <td>Emily White</td>
+                        <td>emily@example.com</td>
+                        <td>2024-10-01</td>
+                        <td><span class="badge badge-warning">Pending</span></td>
+                        <td>
+                            <a href="/User/Approve" class="btn btn-success btn-sm">
+                                <i class="fas fa-check"></i> Approve
+                            </a>
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <td>3</td>
+                        <td>Michael Green</td>
+                        <td>michael@example.com</td>
+                        <td>2024-09-20</td>
+                        <td><span class="badge badge-danger">Blocked</span></td>
+                        <td>
+                            <a href="/User/Approve" class="btn btn-success btn-sm">
+                                <i class="fas fa-check"></i> Approve
+                            </a>
+                        </td>
+                    </tr>
+
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

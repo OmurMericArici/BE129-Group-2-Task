@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="Shoppers.Data/Shoppers.Data.csproj" Id="e3a5bf38-0dc7-4632-9434-1819e826ae66" />
+  <Project Path="Shoppers.Web.AdminMvc/Shoppers.Web.AdminMvc.csproj" />
+  <Project Path="Shoppers.Web.Mvc/Shoppers.Web.Mvc.csproj" />
+</Solution>

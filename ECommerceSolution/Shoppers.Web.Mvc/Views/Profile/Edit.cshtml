@@ -1,0 +1,118 @@
+﻿@{
+	ViewData["Title"] = "Edit Profile";
+}
+
+<div class="bg-light py-3">
+	<div class="container">
+		<div class="row">
+			<div class="col-md-12 mb-0">
+				<a href="/Home/Index">Home</a>
+				<span class="mx-2 mb-0">/</span>
+				<strong class="text-black">Edit Profile</strong>
+			</div>
+		</div>
+	</div>
+</div>
+
+<div class="site-section">
+	<div class="container">
+		<div class="row">
+
+			<div class="col-md-8">
+				<h2 class="h3 mb-3 text-black">Edit Your Information</h2>
+
+				<form method="post" class="p-4 border rounded">
+
+					<!-- Full Name -->
+					<div class="form-group row">
+						<div class="col-md-12">
+							<label class="text-black" for="FullName">Full Name *</label>
+							<input type="text" id="FullName" name="FullName" class="form-control" placeholder="Your full name">
+						</div>
+					</div>
+
+					<!-- Email -->
+					<div class="form-group row">
+						<div class="col-md-12">
+							<label class="text-black" for="Email">Email *</label>
+							<input type="email" id="Email" name="Email" class="form-control" placeholder="you@example.com">
+						</div>
+					</div>
+
+					<!-- Phone -->
+					<div class="form-group row">
+						<div class="col-md-12">
+							<label class="text-black" for="Phone">Phone *</label>
+							<input type="text" id="Phone" name="Phone" class="form-control" placeholder="+1 555 123 4567">
+						</div>
+					</div>
+
+					<!-- Address -->
+					<div class="form-group row">
+						<div class="col-md-12">
+							<label class="text-black" for="Address">Address *</label>
+							<input type="text" id="Address" name="Address" class="form-control" placeholder="Street, City, Country">
+						</div>
+					</div>
+
+					<!-- Save Button -->
+					<div class="form-group row mt-4">
+						<div class="col-md-12">
+							<button class="btn btn-primary btn-lg btn-block" type="submit">Save Changes</button>
+						</div>
+					</div>
+
+				</form>
+			</div>
+
+			<!-- Right Side Menu -->
+			<div class="col-md-4">
+				<div class="border p-4 rounded shadow-sm">
+					<h3 class="h5 text-black mb-4">Account Menu</h3>
+
+					<ul class="list-unstyled">
+
+						<li class="mb-3">
+							<a href="/Profile/Details"
+							   class="d-flex justify-content-between align-items-center p-2 bg-light rounded hover-shadow"
+							   style="text-decoration:none;">
+								<span class="text-black">Profile Details</span>
+
+							</a>
+						</li>
+
+						<li class="mb-3">
+							<a href="/Profile/Edit"
+							   class="d-flex justify-content-between align-items-center p-2 bg-light rounded hover-shadow"
+							   style="text-decoration:none;">
+								<span class="text-black">Edit Profile</span>
+
+							</a>
+						</li>
+
+						<li class="mb-3">
+							<a href="/Profile/MyOrders"
+							   class="d-flex justify-content-between align-items-center p-2 bg-light rounded hover-shadow"
+							   style="text-decoration:none;">
+								<span class="text-black">My Orders</span>
+
+							</a>
+						</li>
+
+						<li class="mb-3">
+							<a href="/Profile/MyProducts"
+							   class="d-flex justify-content-between align-items-center p-2 bg-light rounded hover-shadow"
+							   style="text-decoration:none;">
+								<span class="text-black">My Products</span>
+
+							</a>
+						</li>
+
+					</ul>
+				</div>
+			</div>
+
+
+		</div>
+	</div>
+</div>

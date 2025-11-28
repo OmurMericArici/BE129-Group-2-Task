@@ -1,0 +1,94 @@
+﻿@{
+    ViewData["Title"] = "Product Comment";
+}
+
+<div class="bg-light py-3">
+    <div class="container">
+        <div class="row">
+            <div class="col-md-12 mb-0">
+                <a href="/Home/Index">Home</a>
+                <span class="mx-2 mb-0">/</span>
+                <a href="/Home/Listing">Shop</a>
+                <span class="mx-2 mb-0">/</span>
+                <strong class="text-black">Leave a Comment</strong>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<div class="site-section">
+    <div class="container">
+
+        <div class="row mb-5">
+            <div class="col-md-12">
+                <h2 class="h3 mb-3 text-black">Leave a Comment</h2>
+            </div>
+        </div>
+
+        <div class="row">
+
+            <!-- Yorum Form Alanı -->
+            <div class="col-md-7">
+
+                <form method="post">
+                    <div class="p-3 p-lg-5 border">
+
+                        <!-- İsim -->
+                        <div class="form-group row">
+                            <div class="col-md-12">
+                                <label class="text-black">Your Name *</label>
+                                <input type="text" class="form-control" placeholder="Enter your full name">
+                            </div>
+                        </div>
+
+                        <!-- Email -->
+                        <div class="form-group row">
+                            <div class="col-md-12">
+                                <label class="text-black">Email *</label>
+                                <input type="email" class="form-control" placeholder="example@gmail.com">
+                            </div>
+                        </div>
+
+                        <!-- Yorum -->
+                        <div class="form-group row">
+                            <div class="col-md-12">
+                                <label class="text-black">Your Comment *</label>
+                                <textarea cols="30" rows="6" class="form-control"
+                                          placeholder="Write your comment..."></textarea>
+                            </div>
+                        </div>
+
+                        <!-- Gönder Butonu -->
+                        <div class="form-group row mt-4">
+                            <div class="col-md-12">
+                                <button class="btn btn-primary btn-lg btn-block" type="submit">
+                                    Submit Comment
+                                </button>
+                            </div>
+                        </div>
+
+                    </div>
+                </form>
+
+            </div>
+
+            <!-- Sağ Taraf: Ürün Küçük Önizleme -->
+            <div class="col-md-5 ml-auto">
+
+                <div class="p-4 border mb-3">
+                    <h3 class="text-black h5 mb-3">Product Preview</h3>
+
+                    <img src="~/images/cloth_1.jpg" alt="Product" class="img-fluid mb-3 rounded">
+
+                    <h4 class="text-black">Product Name</h4>
+                    <p>Short product description can go here... (static)</p>
+
+                    <p class="text-primary h5">$49.00</p>
+                </div>
+
+            </div>
+
+        </div>
+    </div>
+</div>
