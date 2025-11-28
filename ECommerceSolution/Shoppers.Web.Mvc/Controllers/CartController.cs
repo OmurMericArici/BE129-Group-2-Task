@@ -18,14 +18,14 @@ namespace Shoppers.Web.Mvc.Controllers
         [HttpPost]
         public async Task<IActionResult> AddProduct(int productId, int quantity = 1)
         {
-            // TODO: Enable Authentication
-            // var userId = int.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier).Value);
             var userId = 1;
 
             var product = await _context.Products.FindAsync(productId);
-            if (product == null)
+            if (product == null) return NotFound();
+
+            if (product.StockAmount < quantity)
             {
-                return NotFound();
+                return RedirectToAction(nameof(Edit));
             }
 
             var cartItem = await _context.CartItems
@@ -33,7 +33,10 @@ namespace Shoppers.Web.Mvc.Controllers
 
             if (cartItem != null)
             {
-                cartItem.Quantity += (byte)quantity;
+                if (product.StockAmount >= cartItem.Quantity + quantity)
+                {
+                    cartItem.Quantity += (byte)quantity;
+                }
             }
             else
             {
@@ -55,8 +58,6 @@ namespace Shoppers.Web.Mvc.Controllers
         [HttpGet]
         public async Task<IActionResult> Edit()
         {
-            // TODO: Enable Authentication
-            // var userId = int.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier).Value);
             var userId = 1;
 
             var cartItems = await _context.CartItems
@@ -74,11 +75,34 @@ namespace Shoppers.Web.Mvc.Controllers
                     ProductName = c.Product.Name,
                     Price = c.Product.Price,
                     Quantity = c.Quantity,
+                    StockAvailable = c.Product.StockAmount,
                     ImageUrl = c.Product.Images.FirstOrDefault()?.Url
                 }).ToList()
             };
 
             return View(viewModel);
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> UpdateCart(Dictionary<int, int> quantities)
+        {
+            foreach (var quantity in quantities)
+            {
+                var cartItem = await _context.CartItems
+                    .Include(c => c.Product)
+                    .FirstOrDefaultAsync(c => c.Id == quantity.Key);
+
+                if (cartItem != null)
+                {
+                    if (quantity.Value > 0 && quantity.Value <= cartItem.Product.StockAmount)
+                    {
+                        cartItem.Quantity = (byte)quantity.Value;
+                    }
+                }
+            }
+            await _context.SaveChangesAsync();
+
+            return RedirectToAction(nameof(Edit));
         }
 
         [HttpPost]

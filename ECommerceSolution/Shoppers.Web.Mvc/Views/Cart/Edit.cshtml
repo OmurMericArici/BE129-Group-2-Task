@@ -20,7 +20,7 @@
     <div class="container">
 
         <div class="row mb-5">
-            <form class="col-md-12" method="post">
+            <form class="col-md-12" method="post" asp-action="UpdateCart" asp-controller="Cart">
                 <div class="site-blocks-table">
                     <table class="table table-bordered">
                         <thead>
@@ -58,7 +58,9 @@
                                                 <div class="input-group-prepend">
                                                     <button class="btn btn-outline-primary js-btn-minus" type="button">&minus;</button>
                                                 </div>
-                                                <input type="text" class="form-control text-center" value="@item.Quantity" aria-label="Example text with button addon" aria-describedby="button-addon1">
+
+                                                <input type="text" name="quantities[@item.CartItemId]" class="form-control text-center" value="@item.Quantity" aria-label="Example text with button addon" aria-describedby="button-addon1">
+
                                                 <div class="input-group-append">
                                                     <button class="btn btn-outline-primary js-btn-plus" type="button">&plus;</button>
                                                 </div>
@@ -66,10 +68,12 @@
                                         </td>
                                         <td>@item.Total.ToString("C")</td>
                                         <td>
-                                            <form asp-action="Remove" asp-controller="Cart" method="post">
-                                                <input type="hidden" name="cartItemId" value="@item.CartItemId" />
-                                                <button type="submit" class="btn btn-primary btn-sm">X</button>
-                                            </form>
+                                            <button type="submit"
+                                                    asp-action="Remove"
+                                                    asp-route-cartItemId="@item.CartItemId"
+                                                    class="btn btn-primary btn-sm">
+                                                X
+                                            </button>
                                         </td>
                                     </tr>
                                 }
@@ -83,68 +87,53 @@
                         </tbody>
                     </table>
                 </div>
-            </form>
-        </div>
-
-        <div class="row">
-
-            <div class="col-md-6">
-                <div class="row mb-5">
-                    <div class="col-md-6 mb-3 mb-md-0">
-                        <button class="btn btn-primary btn-sm btn-block">Update Cart</button>
-                    </div>
-                    <div class="col-md-6">
-                        <a asp-controller="Home" asp-action="Listing" class="btn btn-outline-primary btn-sm btn-block">Continue Shopping</a>
-                    </div>
-                </div>
-
                 <div class="row">
-                    <div class="col-md-12">
-                        <label class="text-black h4" for="coupon">Coupon</label>
-                        <p>Enter your coupon code if you have one.</p>
-                    </div>
-                    <div class="col-md-8 mb-3 mb-md-0">
-                        <input type="text" class="form-control py-3" id="coupon" placeholder="Coupon Code">
-                    </div>
-                    <div class="col-md-4">
-                        <button class="btn btn-primary btn-sm">Apply Coupon</button>
-                    </div>
-                </div>
-            </div>
-
-            <div class="col-md-6 pl-5">
-                <div class="row justify-content-end">
-                    <div class="col-md-7">
-                        <div class="row">
-                            <div class="col-md-12 text-right border-bottom mb-5">
-                                <h3 class="text-black h4 text-uppercase">Cart Totals</h3>
-                            </div>
-                        </div>
-                        <div class="row mb-3">
-                            <div class="col-md-6">
-                                <span class="text-black">Subtotal</span>
-                            </div>
-                            <div class="col-md-6 text-right">
-                                <strong class="text-black">@Model.TotalPrice.ToString("C")</strong>
-                            </div>
-                        </div>
+                    <div class="col-md-6">
                         <div class="row mb-5">
-                            <div class="col-md-6">
-                                <span class="text-black">Total</span>
+                            <div class="col-md-6 mb-3 mb-md-0">
+                                <button type="submit" class="btn btn-primary btn-sm btn-block">Update Cart</button>
                             </div>
-                            <div class="col-md-6 text-right">
-                                <strong class="text-black">@Model.TotalPrice.ToString("C")</strong>
+                            <div class="col-md-6">
+                                <a asp-controller="Home" asp-action="Listing" class="btn btn-outline-primary btn-sm btn-block">Continue Shopping</a>
                             </div>
                         </div>
+                    </div>
 
-                        <div class="row">
-                            <div class="col-md-12">
-                                <a asp-controller="Order" asp-action="Create" class="btn btn-primary btn-lg py-3 btn-block">Proceed To Checkout</a>
+                    <div class="col-md-6 pl-5">
+                        <div class="row justify-content-end">
+                            <div class="col-md-7">
+                                <div class="row">
+                                    <div class="col-md-12 text-right border-bottom mb-5">
+                                        <h3 class="text-black h4 text-uppercase">Cart Totals</h3>
+                                    </div>
+                                </div>
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        <span class="text-black">Subtotal</span>
+                                    </div>
+                                    <div class="col-md-6 text-right">
+                                        <strong class="text-black">@Model.TotalPrice.ToString("C")</strong>
+                                    </div>
+                                </div>
+                                <div class="row mb-5">
+                                    <div class="col-md-6">
+                                        <span class="text-black">Total</span>
+                                    </div>
+                                    <div class="col-md-6 text-right">
+                                        <strong class="text-black">@Model.TotalPrice.ToString("C")</strong>
+                                    </div>
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-md-12">
+                                        <a asp-controller="Order" asp-action="Create" class="btn btn-primary btn-lg py-3 btn-block">Proceed To Checkout</a>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
-            </div>
+            </form>
         </div>
     </div>
 </div>
