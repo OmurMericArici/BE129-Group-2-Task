@@ -1,49 +1,52 @@
-﻿@{
+﻿@model Shoppers.Web.AdminMvc.Models.CategoryCreateViewModel
+
+@{
     ViewData["Title"] = "Create Category";
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
-<!-- Page Heading -->
 <h1 class="h3 mb-4 text-gray-800">Add New Category</h1>
 
 <div class="row">
     <div class="col-lg-6">
-
         <div class="card shadow mb-4">
             <div class="card-header py-3">
                 <h6 class="m-0 font-weight-bold text-primary">Category Information</h6>
             </div>
-
             <div class="card-body">
-                <form method="post">
+                <form asp-action="Create" method="post">
+                    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
 
-                    <!-- Category Name -->
                     <div class="form-group">
-                        <label class="font-weight-bold">Category Name</label>
-                        <input type="text" name="Name" class="form-control"
-                               placeholder="Enter category name..." />
+                        <label asp-for="Name" class="font-weight-bold"></label>
+                        <input asp-for="Name" class="form-control" placeholder="Enter category name..." />
+                        <span asp-validation-for="Name" class="text-danger"></span>
                     </div>
 
-                    <!-- Description -->
                     <div class="form-group">
-                        <label class="font-weight-bold">Description</label>
-                        <input type="text" name="Description" class="form-control"
-                               placeholder="Short description..." />
+                        <label asp-for="Color" class="font-weight-bold"></label>
+                        <input asp-for="Color" class="form-control" placeholder="e.g. red, #ff0000" />
+                        <span asp-validation-for="Color" class="text-danger"></span>
                     </div>
 
-                    <!-- Submit Button -->
+                    <div class="form-group">
+                        <label asp-for="IconCssClass" class="font-weight-bold"></label>
+                        <input asp-for="IconCssClass" class="form-control" placeholder="e.g. icon-shirt" />
+                        <span asp-validation-for="IconCssClass" class="text-danger"></span>
+                    </div>
+
                     <button type="submit" class="btn btn-primary btn-block">
                         <i class="fas fa-save mr-1"></i> Save Category
                     </button>
-
                 </form>
             </div>
         </div>
-
-        <!-- Back Button -->
-        <a href="/Category/List" class="btn btn-secondary">
-            <i class="fas fa-arrow-left mr-1"></i> Back to List
+        <a asp-controller="Home" asp-action="Index" class="btn btn-secondary">
+            <i class="fas fa-arrow-left mr-1"></i> Back to Dashboard
         </a>
-
     </div>
 </div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

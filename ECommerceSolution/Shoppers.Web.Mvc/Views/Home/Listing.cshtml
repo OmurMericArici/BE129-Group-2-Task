@@ -1,5 +1,9 @@
-﻿@{
+﻿@model List<Shoppers.Data.Entities.ProductEntity>
+
+@{
     ViewData["Title"] = "Shop";
+    var categories = ViewBag.Categories as List<Shoppers.Data.Entities.CategoryEntity>;
+    var currentCategory = ViewBag.CurrentCategory as string;
 }
 
 <div class="bg-light py-3">
@@ -16,176 +20,89 @@
 
 <div class="site-section">
     <div class="container">
-
         <div class="row mb-5">
             <div class="col-md-9 order-2">
-
                 <div class="row">
                     <div class="col-md-12 mb-5">
-                        <div class="float-md-left mb-4"><h2 class="text-black h5">Shop All</h2></div>
+                        <div class="float-md-left mb-4">
+                            <h2 class="text-black h5">Shop All</h2>
+                        </div>
                         <div class="d-flex">
                             <div class="dropdown mr-1 ml-md-auto">
-                                <button type="button" class="btn btn-secondary btn-sm dropdown-toggle" id="dropdownMenuOffset"
-                                        data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                                    Latest
+                                <button type="button" class="btn btn-secondary btn-sm dropdown-toggle" id="dropdownMenuReference" data-toggle="dropdown">
+                                    Sort By
                                 </button>
-                                <div class="dropdown-menu" aria-labelledby="dropdownMenuOffset">
-                                    <a class="dropdown-item" href="#">Men</a>
-                                    <a class="dropdown-item" href="#">Women</a>
-                                    <a class="dropdown-item" href="#">Children</a>
-                                </div>
-                            </div>
-
-                            <div class="btn-group">
-                                <button type="button" class="btn btn-secondary btn-sm dropdown-toggle"
-                                        id="dropdownMenuReference" data-toggle="dropdown">
-                                    Reference
-                                </button>
-
                                 <div class="dropdown-menu" aria-labelledby="dropdownMenuReference">
-                                    <a class="dropdown-item" href="#">Relevance</a>
-                                    <a class="dropdown-item" href="#">Name, A to Z</a>
-                                    <a class="dropdown-item" href="#">Name, Z to A</a>
-                                    <div class="dropdown-divider"></div>
-                                    <a class="dropdown-item" href="#">Price, low to high</a>
-                                    <a class="dropdown-item" href="#">Price, high to low</a>
+                                    <a class="dropdown-item" asp-route-category="@currentCategory" asp-route-sort="newest">New Arrivals</a>
+                                    <a class="dropdown-item" asp-route-category="@currentCategory" asp-route-sort="price_asc">Price, low to high</a>
+                                    <a class="dropdown-item" asp-route-category="@currentCategory" asp-route-sort="price_desc">Price, high to low</a>
                                 </div>
-
                             </div>
-
                         </div>
                     </div>
                 </div>
 
                 <div class="row mb-5">
-
-                    <!-- PRODUCT 1 (Linked to Seed Data ID: 1) -->
-                    <div class="col-sm-6 col-lg-4 mb-4" data-aos="fade-up">
-                        <div class="block-4 text-center border">
-                            <figure class="block-4-image">
-                                <a asp-controller="Home" asp-action="ProductDetail" asp-route-id="1">
-                                    <img src="~/images/cloth_1.jpg" class="img-fluid" />
-                                </a>
-                            </figure>
-
-                            <div class="block-4-text p-4">
-                                <h3><a asp-controller="Home" asp-action="ProductDetail" asp-route-id="1">Tank Top</a></h3>
-                                <p class="mb-0">Finding perfect t-shirt</p>
-                                <p class="text-primary font-weight-bold">$50</p>
+                    @if (Model != null && Model.Any())
+                    {
+                        @foreach (var item in Model)
+                        {
+                            <div class="col-sm-6 col-lg-4 mb-4" data-aos="fade-up">
+                                <div class="block-4 text-center border">
+                                    <figure class="block-4-image">
+                                        <a asp-controller="Home" asp-action="ProductDetail" asp-route-id="@item.Id">
+                                            @if (item.Images != null && item.Images.Any())
+                                            {
+                                                <img src="@item.Images.First().Url" alt="@item.Name" class="img-fluid" style="height:250px; object-fit:cover;">
+                                            }
+                                            else
+                                            {
+                                                <img src="~/images/cloth_1.jpg" alt="No Image" class="img-fluid">
+                                            }
+                                        </a>
+                                    </figure>
+                                    <div class="block-4-text p-4">
+                                        <h3><a asp-controller="Home" asp-action="ProductDetail" asp-route-id="@item.Id">@item.Name</a></h3>
+                                        <p class="mb-0">@item.Category?.Name</p>
+                                        <p class="text-primary font-weight-bold">@item.Price.ToString("C")</p>
+                                    </div>
+                                </div>
                             </div>
+                        }
+                    }
+                    else
+                    {
+                        <div class="col-12 text-center">
+                            <p>No products found in this category.</p>
+                            <a asp-action="Listing" asp-route-category="all" class="btn btn-primary btn-sm">View All Products</a>
                         </div>
-                    </div>
-
-                    <!-- PRODUCT 2 (Static Placeholder) -->
-                    <div class="col-sm-6 col-lg-4 mb-4" data-aos="fade-up">
-                        <div class="block-4 text-center border">
-                            <figure class="block-4-image">
-                                <a asp-controller="Home" asp-action="ProductDetail" asp-route-id="1">
-                                    <img src="~/images/shoe_1.jpg" class="img-fluid" />
-                                </a>
-                            </figure>
-
-                            <div class="block-4-text p-4">
-                                <h3><a asp-controller="Home" asp-action="ProductDetail" asp-route-id="1">Corater</a></h3>
-                                <p class="mb-0">Finding perfect products</p>
-                                <p class="text-primary font-weight-bold">$50</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- PRODUCT 3 (Static Placeholder) -->
-                    <div class="col-sm-6 col-lg-4 mb-4" data-aos="fade-up">
-                        <div class="block-4 text-center border">
-                            <figure class="block-4-image">
-                                <a asp-controller="Home" asp-action="ProductDetail" asp-route-id="1">
-                                    <img src="~/images/cloth_2.jpg" class="img-fluid" />
-                                </a>
-                            </figure>
-
-                            <div class="block-4-text p-4">
-                                <h3><a asp-controller="Home" asp-action="ProductDetail" asp-route-id="1">Polo Shirt</a></h3>
-                                <p class="mb-0">Finding perfect products</p>
-                                <p class="text-primary font-weight-bold">$50</p>
-                            </div>
-                        </div>
-                    </div>
-
+                    }
                 </div>
-
-                <div class="row" data-aos="fade-up">
-                    <div class="col-md-12 text-center">
-                        <div class="site-block-27">
-                            <ul>
-                                <li><a href="#">&lt;</a></li>
-                                <li class="active"><span>1</span></li>
-                                <li><a href="#">2</a></li>
-                                <li><a href="#">3</a></li>
-                                <li><a href="#">4</a></li>
-                                <li><a href="#">5</a></li>
-                                <li><a href="#">&gt;</a></li>
-                            </ul>
-                        </div>
-                    </div>
-                </div>
-
             </div>
 
             <div class="col-md-3 order-1 mb-5 mb-md-0">
-
                 <div class="border p-4 rounded mb-4">
                     <h3 class="mb-3 h6 text-uppercase text-black d-block">Categories</h3>
                     <ul class="list-unstyled mb-0">
-                        <li class="mb-1"><a href="#" class="d-flex"><span>Men</span><span class="text-black ml-auto">(2,220)</span></a></li>
-                        <li class="mb-1"><a href="#" class="d-flex"><span>Women</span><span class="text-black ml-auto">(2,550)</span></a></li>
-                        <li class="mb-1"><a href="#" class="d-flex"><span>Children</span><span class="text-black ml-auto">(2,124)</span></a></li>
+                        <li class="mb-1">
+                            <a asp-action="Listing" asp-route-category="all" class="d-flex">
+                                <span>All Products</span>
+                            </a>
+                        </li>
+                        @if (categories != null)
+                        {
+                            @foreach (var cat in categories)
+                            {
+                                <li class="mb-1">
+                                    <a asp-action="Listing" asp-route-category="@cat.Name" class="d-flex">
+                                        <span>@cat.Name</span>
+                                    </a>
+                                </li>
+                            }
+                        }
                     </ul>
                 </div>
-
-                <div class="border p-4 rounded mb-4">
-
-                    <div class="mb-4">
-                        <h3 class="mb-3 h6 text-uppercase text-black d-block">Filter by Price</h3>
-                        <div id="slider-range" class="border-primary"></div>
-                        <input type="text" id="amount" class="form-control border-0 pl-0 bg-white" disabled />
-                    </div>
-
-                    <div class="mb-4">
-                        <h3 class="mb-3 h6 text-uppercase text-black d-block">Size</h3>
-                        <label class="d-flex"><input type="checkbox" class="mr-2 mt-1" /> Small (2,319)</label>
-                        <label class="d-flex"><input type="checkbox" class="mr-2 mt-1" /> Medium (1,282)</label>
-                        <label class="d-flex"><input type="checkbox" class="mr-2 mt-1" /> Large (1,392)</label>
-                    </div>
-
-                    <div class="mb-4">
-                        <h3 class="mb-3 h6 text-uppercase text-black d-block">Color</h3>
-
-                        <a href="#" class="d-flex color-item align-items-center">
-                            <span class="bg-danger color rounded-circle mr-2"></span>
-                            <span class="text-black">Red (2,429)</span>
-                        </a>
-
-                        <a href="#" class="d-flex color-item align-items-center">
-                            <span class="bg-success color rounded-circle mr-2"></span>
-                            <span class="text-black">Green (2,298)</span>
-                        </a>
-
-                        <a href="#" class="d-flex color-item align-items-center">
-                            <span class="bg-info color rounded-circle mr-2"></span>
-                            <span class="text-black">Blue (1,075)</span>
-                        </a>
-
-                        <a href="#" class="d-flex color-item align-items-center">
-                            <span class="bg-primary color rounded-circle mr-2"></span>
-                            <span class="text-black">Purple (1,075)</span>
-                        </a>
-
-                    </div>
-
-                </div>
-
             </div>
-
         </div>
-
     </div>
 </div>
