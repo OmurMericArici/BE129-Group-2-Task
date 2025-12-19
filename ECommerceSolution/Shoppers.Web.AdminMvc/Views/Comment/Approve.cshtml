@@ -31,17 +31,20 @@
                     <label class="font-weight-bold">Comment</label>
                     <textarea class="form-control bg-light" rows="4" readonly>@Model.Text</textarea>
                 </div>
-                
+
                 <div class="mb-3">
                     <label class="font-weight-bold">Rating</label>
                     <div>
-                        @for(int i=0; i<Model.StarCount; i++) { <i class="fas fa-star text-warning"></i> }
+                        @for (int i = 0; i < Model.StarCount; i++)
+                        {
+                            <i class="fas fa-star text-warning"></i>
+                        }
                     </div>
                 </div>
 
                 <form asp-action="ApproveConfirmed" method="post">
                     <input type="hidden" name="id" value="@Model.Id" />
-                    
+
                     <button type="submit" class="btn btn-success btn-block">
                         <i class="fas fa-check mr-1"></i> Approve and Publish
                     </button>

@@ -35,9 +35,20 @@
                                 <td>@user.FirstName @user.LastName</td>
                                 <td>@user.Email</td>
                                 <td>
-                                    @if(user.RoleId == 3) { <span class="badge badge-danger">Admin</span> }
-                                    else if(user.RoleId == 2) { <span class="badge badge-primary">Seller</span> }
-                                    else { <span class="badge badge-secondary">Buyer</span> }
+                                    @if (user.RoleId == 3)
+                                    {
+                                        <span class="badge badge-danger">Admin</span>
+                                    }
+                                    else if (user.RoleId == 2)
+                                    {
+
+                                        <span class="badge badge-primary">Seller</span>
+                                    }
+                                    else
+                                    {
+
+                                        <span class="badge badge-secondary">Buyer</span>
+                                    }
                                 </td>
                                 <td>@user.CreatedAt.ToShortDateString()</td>
                                 <td>
