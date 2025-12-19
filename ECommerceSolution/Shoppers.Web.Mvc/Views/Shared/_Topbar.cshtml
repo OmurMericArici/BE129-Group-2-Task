@@ -1,0 +1,49 @@
+﻿<ul class="navbar-nav ml-auto">
+
+    <div class="topbar-divider d-none d-sm-block"></div>
+
+    @if (User.Identity.IsAuthenticated)
+    {
+        <li class="nav-item dropdown no-arrow">
+            <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button"
+               data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+
+                <span class="mr-2 d-none d-lg-inline text-gray-600 small">
+                    Hello, @User.FindFirst("FullName")?.Value
+                </span>
+
+                <img class="img-profile rounded-circle" src="~/img/undraw_profile.svg" />
+            </a>
+
+            <div class="dropdown-menu dropdown-menu-right shadow animated--grow-in"
+                 aria-labelledby="userDropdown">
+
+                <a class="dropdown-item" asp-controller="Profile" asp-action="Details">
+                    <i class="fas fa-user fa-sm fa-fw mr-2 text-gray-400"></i>
+                    Profile
+                </a>
+
+                <a class="dropdown-item" asp-controller="Profile" asp-action="MyProducts">
+                    <i class="fas fa-box fa-sm fa-fw mr-2 text-gray-400"></i>
+                    My Products
+                </a>
+
+                <div class="dropdown-divider"></div>
+
+                <a class="dropdown-item" asp-controller="Auth" asp-action="Logout">
+                    <i class="fas fa-sign-out-alt fa-sm fa-fw mr-2 text-gray-400"></i>
+                    Logout
+                </a>
+            </div>
+        </li>
+    }
+    else
+    {
+        <li class="nav-item d-flex align-items-center">
+            <a class="nav-link text-primary" asp-controller="Auth" asp-action="Login">Login</a>
+            <span class="text-secondary">|</span>
+            <a class="nav-link text-primary" asp-controller="Auth" asp-action="Register">Register</a>
+        </li>
+    }
+
+</ul>

@@ -1,4 +1,6 @@
-﻿@{
+﻿@model List<Shoppers.Data.Entities.ProductCommentEntity>
+
+@{
     ViewData["Title"] = "Comments";
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
@@ -6,8 +8,8 @@
 <h1 class="h3 mb-4 text-gray-800">Comments</h1>
 
 <div class="card shadow mb-4">
-    <div class="card-header py-3 d-flex justify-content-between align-items-center">
-        <h6 class="m-0 font-weight-bold text-primary">Comment List</h6>
+    <div class="card-header py-3">
+        <h6 class="m-0 font-weight-bold text-primary">All Comments</h6>
     </div>
 
     <div class="card-body">
@@ -15,49 +17,54 @@
             <table class="table table-bordered" width="100%" cellspacing="0">
                 <thead class="thead-light">
                     <tr>
-                        <th>ID</th>
+                        <th>Product</th>
                         <th>User</th>
                         <th>Comment</th>
-                        <th>Date</th>
+                        <th>Stars</th>
                         <th>Status</th>
                         <th style="width:130px;">Actions</th>
                     </tr>
                 </thead>
 
                 <tbody>
-                    <!-- Fake data - Model bağlı olmadığı için statik örnek -->
-                    <tr>
-                        <td>1</td>
-                        <td>John Doe</td>
-                        <td>Great product, fast delivery!</td>
-                        <td>2025-11-21</td>
-                        <td><span class="badge badge-success">Approved</span></td>
-                        <td>
-                            <a href="/Comment/Approve" class="btn btn-success btn-sm">
-                                <i class="fas fa-check"></i>
-                            </a>
-                            <a href="#" class="btn btn-danger btn-sm">
-                                <i class="fas fa-trash-alt"></i>
-                            </a>
-                        </td>
-                    </tr>
-
-                    <tr>
-                        <td>2</td>
-                        <td>Jane Smith</td>
-                        <td>Product arrived damaged...</td>
-                        <td>2025-11-21</td>
-                        <td><span class="badge badge-warning">Pending</span></td>
-                        <td>
-                            <a href="/Comment/Approve" class="btn btn-success btn-sm">
-                                <i class="fas fa-check"></i>
-                            </a>
-                            <a href="#" class="btn btn-danger btn-sm">
-                                <i class="fas fa-trash-alt"></i>
-                            </a>
-                        </td>
-                    </tr>
-
+                    @if (Model != null && Model.Any())
+                    {
+                        @foreach (var item in Model)
+                        {
+                            <tr>
+                                <td>@item.Product?.Name</td>
+                                <td>@item.User?.FirstName @item.User?.LastName</td>
+                                <td>
+                                    <div style="max-height: 60px; overflow:hidden; text-overflow:ellipsis;">
+                                        @item.Text
+                                    </div>
+                                </td>
+                                <td>@item.StarCount / 5</td>
+                                <td>
+                                    @if (item.IsConfirmed)
+                                    {
+                                        <span class="badge badge-success">Approved</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge badge-warning">Pending</span>
+                                    }
+                                </td>
+                                <td>
+                                    @if (!item.IsConfirmed)
+                                    {
+                                        <a asp-action="Approve" asp-route-id="@item.Id" class="btn btn-success btn-sm">
+                                            <i class="fas fa-check"></i> Approve
+                                        </a>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr><td colspan="6" class="text-center">No comments found.</td></tr>
+                    }
                 </tbody>
             </table>
         </div>

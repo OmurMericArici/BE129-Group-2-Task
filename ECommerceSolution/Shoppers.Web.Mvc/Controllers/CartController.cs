@@ -1,11 +1,14 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization; // Eklendi
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Shoppers.Data;
 using Shoppers.Data.Entities;
 using Shoppers.Web.Mvc.Models;
+using System.Security.Claims; // Eklendi
 
 namespace Shoppers.Web.Mvc.Controllers
 {
+    [Authorize] // Sepet işlemleri için giriş şartı
     public class CartController : Controller
     {
         private readonly ShoppersDbContext _context;
@@ -15,17 +18,25 @@ namespace Shoppers.Web.Mvc.Controllers
             _context = context;
         }
 
+        // Yardımcı Metot
+        private int GetUserId()
+        {
+            var claim = User.FindFirst(ClaimTypes.NameIdentifier);
+            return claim != null ? int.Parse(claim.Value) : 0;
+        }
+
         [HttpPost]
         public async Task<IActionResult> AddProduct(int productId, int quantity = 1)
         {
-            var userId = 1;
+            var userId = GetUserId();
 
             var product = await _context.Products.FindAsync(productId);
             if (product == null) return NotFound();
 
             if (product.StockAmount < quantity)
             {
-                return RedirectToAction(nameof(Edit));
+                TempData["Error"] = "Yetersiz stok!";
+                return RedirectToAction(nameof(Edit)); // veya ProductDetail
             }
 
             var cartItem = await _context.CartItems
@@ -36,6 +47,10 @@ namespace Shoppers.Web.Mvc.Controllers
                 if (product.StockAmount >= cartItem.Quantity + quantity)
                 {
                     cartItem.Quantity += (byte)quantity;
+                }
+                else
+                {
+                    TempData["Error"] = "Stok sınırına ulaşıldı.";
                 }
             }
             else
@@ -58,7 +73,7 @@ namespace Shoppers.Web.Mvc.Controllers
         [HttpGet]
         public async Task<IActionResult> Edit()
         {
-            var userId = 1;
+            var userId = GetUserId();
 
             var cartItems = await _context.CartItems
                 .Include(c => c.Product)
@@ -86,11 +101,13 @@ namespace Shoppers.Web.Mvc.Controllers
         [HttpPost]
         public async Task<IActionResult> UpdateCart(Dictionary<int, int> quantities)
         {
+            var userId = GetUserId(); // Güvenlik kontrolü için kullanıcıya ait mi diye bakılabilir
+
             foreach (var quantity in quantities)
             {
                 var cartItem = await _context.CartItems
                     .Include(c => c.Product)
-                    .FirstOrDefaultAsync(c => c.Id == quantity.Key);
+                    .FirstOrDefaultAsync(c => c.Id == quantity.Key && c.UserId == userId);
 
                 if (cartItem != null)
                 {
@@ -108,7 +125,8 @@ namespace Shoppers.Web.Mvc.Controllers
         [HttpPost]
         public async Task<IActionResult> Remove(int cartItemId)
         {
-            var cartItem = await _context.CartItems.FindAsync(cartItemId);
+            var userId = GetUserId();
+            var cartItem = await _context.CartItems.FirstOrDefaultAsync(c => c.Id == cartItemId && c.UserId == userId);
 
             if (cartItem != null)
             {

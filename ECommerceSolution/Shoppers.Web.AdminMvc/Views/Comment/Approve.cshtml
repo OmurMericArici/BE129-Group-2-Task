@@ -1,4 +1,6 @@
-﻿@{
+﻿@model Shoppers.Data.Entities.ProductCommentEntity
+
+@{
     ViewData["Title"] = "Approve Comment";
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
@@ -10,38 +12,44 @@
 
         <div class="card shadow mb-4">
             <div class="card-header py-3">
-                <h6 class="m-0 font-weight-bold text-primary">Comment Information</h6>
+                <h6 class="m-0 font-weight-bold text-primary">Comment Details</h6>
             </div>
 
             <div class="card-body">
 
-                <!-- Fake Data (çünkü model yok) -->
+                <div class="mb-3">
+                    <label class="font-weight-bold">Product</label>
+                    <div class="form-control bg-light">@Model.Product?.Name</div>
+                </div>
+
                 <div class="mb-3">
                     <label class="font-weight-bold">User</label>
-                    <div class="form-control bg-light">John Doe</div>
+                    <div class="form-control bg-light">@Model.User?.FirstName @Model.User?.LastName</div>
                 </div>
 
                 <div class="mb-3">
                     <label class="font-weight-bold">Comment</label>
-                    <textarea class="form-control bg-light" rows="3" readonly>
-Great product, fast delivery! Thank you!
-                    </textarea>
+                    <textarea class="form-control bg-light" rows="4" readonly>@Model.Text</textarea>
                 </div>
-
+                
                 <div class="mb-3">
-                    <label class="font-weight-bold">Date</label>
-                    <div class="form-control bg-light">2025-11-21</div>
+                    <label class="font-weight-bold">Rating</label>
+                    <div>
+                        @for(int i=0; i<Model.StarCount; i++) { <i class="fas fa-star text-warning"></i> }
+                    </div>
                 </div>
 
-                <!-- Approve Button -->
-                <a href="/Comment/List" class="btn btn-success btn-block">
-                    <i class="fas fa-check mr-1"></i> Approve Comment
-                </a>
+                <form asp-action="ApproveConfirmed" method="post">
+                    <input type="hidden" name="id" value="@Model.Id" />
+                    
+                    <button type="submit" class="btn btn-success btn-block">
+                        <i class="fas fa-check mr-1"></i> Approve and Publish
+                    </button>
 
-                <!-- Cancel Button -->
-                <a href="/Comment/List" class="btn btn-secondary btn-block mt-2">
-                    <i class="fas fa-arrow-left mr-1"></i> Back to List
-                </a>
+                    <a asp-action="List" class="btn btn-secondary btn-block mt-2">
+                        <i class="fas fa-arrow-left mr-1"></i> Back to List
+                    </a>
+                </form>
 
             </div>
         </div>

@@ -1,4 +1,5 @@
-﻿@{
+﻿@model Shoppers.Web.Mvc.Models.RegisterViewModel
+@{
     ViewData["Title"] = "Register";
 }
 
@@ -16,57 +17,72 @@
 
 <div class="site-section">
     <div class="container">
-
         <div class="row">
             <div class="col-md-6 mb-5 mb-md-0">
                 <h2 class="h3 mb-3 text-black">Create an Account</h2>
 
-                <div class="p-3 p-lg-5 border">
-                    <div class="form-group row">
-                        <div class="col-md-12">
-                            <label class="text-black" for="FullName">Full Name</label>
-                            <input type="text" class="form-control" id="FullName" placeholder="Your full name">
-                        </div>
-                    </div>
+                <form asp-action="Register" method="post">
+                    <div class="p-3 p-lg-5 border">
+                        <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
 
-                    <div class="form-group row">
-                        <div class="col-md-12">
-                            <label class="text-black" for="Email">Email</label>
-                            <input type="email" class="form-control" id="Email" placeholder="you@example.com">
+                        <div class="form-group row">
+                            <div class="col-md-6">
+                                <label asp-for="FirstName" class="text-black">First Name <span class="text-danger">*</span></label>
+                                <input asp-for="FirstName" class="form-control">
+                                <span asp-validation-for="FirstName" class="text-danger"></span>
+                            </div>
+                            <div class="col-md-6">
+                                <label asp-for="LastName" class="text-black">Last Name <span class="text-danger">*</span></label>
+                                <input asp-for="LastName" class="form-control">
+                                <span asp-validation-for="LastName" class="text-danger"></span>
+                            </div>
                         </div>
-                    </div>
 
-                    <div class="form-group row">
-                        <div class="col-md-12">
-                            <label class="text-black" for="Password">Password</label>
-                            <input type="password" class="form-control" id="Password" placeholder="********">
+                        <div class="form-group row">
+                            <div class="col-md-12">
+                                <label asp-for="Email" class="text-black">Email <span class="text-danger">*</span></label>
+                                <input asp-for="Email" class="form-control" placeholder="you@example.com">
+                                <span asp-validation-for="Email" class="text-danger"></span>
+                            </div>
                         </div>
-                    </div>
 
-                    <div class="form-group row">
-                        <div class="col-md-12">
-                            <label class="text-black" for="ConfirmPassword">Confirm Password</label>
-                            <input type="password" class="form-control" id="ConfirmPassword" placeholder="********">
+                        <div class="form-group row">
+                            <div class="col-md-12">
+                                <label asp-for="Password" class="text-black">Password <span class="text-danger">*</span></label>
+                                <input asp-for="Password" class="form-control" placeholder="********">
+                                <span asp-validation-for="Password" class="text-danger"></span>
+                            </div>
                         </div>
-                    </div>
 
-                    <div class="form-group row mt-4">
-                        <div class="col-md-12">
-                            <input type="submit" class="btn btn-primary btn-lg btn-block" value="Register">
+                        <div class="form-group row">
+                            <div class="col-md-12">
+                                <label asp-for="ConfirmPassword" class="text-black">Confirm Password <span class="text-danger">*</span></label>
+                                <input asp-for="ConfirmPassword" class="form-control" placeholder="********">
+                                <span asp-validation-for="ConfirmPassword" class="text-danger"></span>
+                            </div>
                         </div>
-                    </div>
 
-                    <p class="mt-3">
-                        Already have an account?
-                        <a href="/Auth/Login" class="text-primary">Login Here</a>
-                    </p>
-                </div>
+                        <div class="form-group row mt-4">
+                            <div class="col-md-12">
+                                <button type="submit" class="btn btn-primary btn-lg btn-block">Register</button>
+                            </div>
+                        </div>
+
+                        <p class="mt-3">
+                            Already have an account?
+                            <a asp-action="Login" class="text-primary">Login Here</a>
+                        </p>
+                    </div>
+                </form>
             </div>
 
             <div class="col-md-6">
                 <img src="~/images/cloth_3.jpg" alt="Image" class="img-fluid rounded">
             </div>
         </div>
-
     </div>
 </div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

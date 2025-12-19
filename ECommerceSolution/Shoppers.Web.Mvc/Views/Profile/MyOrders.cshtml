@@ -1,4 +1,5 @@
-﻿@{
+﻿@model List<Shoppers.Data.Entities.OrderEntity>
+@{
     ViewData["Title"] = "My Orders";
 }
 
@@ -18,86 +19,39 @@
     <div class="container">
         <div class="row">
 
-            <!-- Orders List -->
             <div class="col-md-8">
-
                 <h2 class="h3 mb-3 text-black">Your Orders</h2>
 
-                <!-- Order Item -->
-                <div class="p-4 border rounded mb-4">
-                    <h5 class="text-primary">Order #2025001</h5>
-                    <p class="mb-1"><strong>Date:</strong> January 10, 2025</p>
-                    <p class="mb-1"><strong>Status:</strong> <span class="text-success">Completed</span></p>
-                    <p class="mb-3"><strong>Total:</strong> $98.00</p>
+                @if (Model != null && Model.Any())
+                {
+                    @foreach (var order in Model)
+                    {
+                        var total = order.OrderItems.Sum(x => x.Quantity * x.UnitPrice);
 
-                    <a href="/Order/Details" class="btn btn-outline-primary btn-sm">View Details</a>
-                </div>
+                        <div class="p-4 border rounded mb-4">
+                            <h5 class="text-primary">Order #@order.OrderCode</h5>
+                            <p class="mb-1"><strong>Date:</strong> @order.CreatedAt.ToShortDateString()</p>
+                            <p class="mb-3"><strong>Total:</strong> @total.ToString("C")</p>
 
-                <!-- Order Item -->
-                <div class="p-4 border rounded mb-4">
-                    <h5 class="text-primary">Order #2025000</h5>
-                    <p class="mb-1"><strong>Date:</strong> January 5, 2025</p>
-                    <p class="mb-1"><strong>Status:</strong> <span class="text-warning">Processing</span></p>
-                    <p class="mb-3"><strong>Total:</strong> $149.00</p>
-
-                    <a href="/Order/Details" class="btn btn-outline-primary btn-sm">View Details</a>
-                </div>
-
-                <!-- Order Item -->
-                <div class="p-4 border rounded mb-4">
-                    <h5 class="text-primary">Order #2024995</h5>
-                    <p class="mb-1"><strong>Date:</strong> December 28, 2024</p>
-                    <p class="mb-1"><strong>Status:</strong> <span class="text-danger">Cancelled</span></p>
-                    <p class="mb-3"><strong>Total:</strong> $75.00</p>
-
-                    <a href="/Order/Details" class="btn btn-outline-primary btn-sm">View Details</a>
-                </div>
+                            <a asp-controller="Order" asp-action="Details" asp-route-id="@order.Id" class="btn btn-outline-primary btn-sm">View Details</a>
+                        </div>
+                    }
+                }
+                else
+                {
+                    <div class="alert alert-info">You have no orders yet.</div>
+                }
 
             </div>
 
-            <!-- Right Menu -->
             <div class="col-md-4">
                 <div class="border p-4 rounded shadow-sm">
                     <h3 class="h5 text-black mb-4">Account Menu</h3>
-
                     <ul class="list-unstyled">
-
-                        <li class="mb-3">
-                            <a href="/Profile/Details"
-                               class="d-flex justify-content-between align-items-center p-2 bg-light rounded hover-shadow"
-                               style="text-decoration:none;">
-                                <span class="text-black">Profile Details</span>
-
-                            </a>
-                        </li>
-
-                        <li class="mb-3">
-                            <a href="/Profile/Edit"
-                               class="d-flex justify-content-between align-items-center p-2 bg-light rounded hover-shadow"
-                               style="text-decoration:none;">
-                                <span class="text-black">Edit Profile</span>
-
-                            </a>
-                        </li>
-
-                        <li class="mb-3">
-                            <a href="/Profile/MyOrders"
-                               class="d-flex justify-content-between align-items-center p-2 bg-light rounded hover-shadow"
-                               style="text-decoration:none;">
-                                <span class="text-black">My Orders</span>
-
-                            </a>
-                        </li>
-
-                        <li class="mb-3">
-                            <a href="/Profile/MyProducts"
-                               class="d-flex justify-content-between align-items-center p-2 bg-light rounded hover-shadow"
-                               style="text-decoration:none;">
-                                <span class="text-black">My Products</span>
-
-                            </a>
-                        </li>
-
+                        <li class="mb-3"><a asp-action="Details" class="text-black">Profile Details</a></li>
+                        <li class="mb-3"><a asp-action="Edit" class="text-black">Edit Profile</a></li>
+                        <li class="mb-3"><a asp-action="MyOrders" class="text-black">My Orders</a></li>
+                        <li class="mb-3"><a asp-action="MyProducts" class="text-black">My Products</a></li>
                     </ul>
                 </div>
             </div>
