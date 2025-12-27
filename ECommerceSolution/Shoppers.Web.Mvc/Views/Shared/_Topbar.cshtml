@@ -2,7 +2,7 @@
 
     <div class="topbar-divider d-none d-sm-block"></div>
 
-    @if (User.Identity.IsAuthenticated)
+    @if (User.Identity!.IsAuthenticated)
     {
         <li class="nav-item dropdown no-arrow">
             <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button"
@@ -23,10 +23,21 @@
                     Profile
                 </a>
 
-                <a class="dropdown-item" asp-controller="Profile" asp-action="MyProducts">
-                    <i class="fas fa-box fa-sm fa-fw mr-2 text-gray-400"></i>
-                    My Products
-                </a>
+                @if (User.IsInRole("Seller"))
+                {
+                    <a class="dropdown-item" asp-controller="Profile" asp-action="MyProducts">
+                        <i class="fas fa-box fa-sm fa-fw mr-2 text-gray-400"></i>
+                        My Products
+                    </a>
+                }
+
+                @if (User.IsInRole("Buyer") || User.IsInRole("Seller"))
+                {
+                    <a class="dropdown-item" asp-controller="Profile" asp-action="MyOrders">
+                        <i class="fas fa-shopping-bag fa-sm fa-fw mr-2 text-gray-400"></i>
+                        My Orders
+                    </a>
+                }
 
                 <div class="dropdown-divider"></div>
 

@@ -1,21 +1,24 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Shoppers.Data;
+using Shoppers.Data.Entities;
+using Shoppers.Data.Repositories;
 
 namespace Shoppers.Web.Mvc.Controllers
 {
     public class HomeController : Controller
     {
-        private readonly ShoppersDbContext _context;
+        private readonly IRepository<ProductEntity> _productRepository;
+        private readonly IRepository<CategoryEntity> _categoryRepository;
 
-        public HomeController(ShoppersDbContext context)
+        public HomeController(IRepository<ProductEntity> productRepository, IRepository<CategoryEntity> categoryRepository)
         {
-            _context = context;
+            _productRepository = productRepository;
+            _categoryRepository = categoryRepository;
         }
 
         public IActionResult Index()
         {
-            var products = _context.Products
+            var products = _productRepository.GetAll()
                                    .Include(p => p.Images)
                                    .Where(p => p.Enabled)
                                    .OrderByDescending(p => p.CreatedAt)
@@ -26,7 +29,7 @@ namespace Shoppers.Web.Mvc.Controllers
 
         public IActionResult Listing(string category, string sort)
         {
-            var query = _context.Products
+            var query = _productRepository.GetAll()
                                 .Include(p => p.Images)
                                 .Include(p => p.Category)
                                 .Where(p => p.Enabled);
@@ -52,7 +55,7 @@ namespace Shoppers.Web.Mvc.Controllers
                     break;
             }
 
-            ViewBag.Categories = _context.Categories.OrderBy(c => c.Name).ToList();
+            ViewBag.Categories = _categoryRepository.GetAll().OrderBy(c => c.Name).ToList();
             ViewBag.CurrentCategory = category;
 
             return View(query.ToList());
@@ -60,7 +63,7 @@ namespace Shoppers.Web.Mvc.Controllers
 
         public IActionResult ProductDetail(int id)
         {
-            var product = _context.Products
+            var product = _productRepository.GetAll()
                 .Include(p => p.Category)
                 .Include(p => p.Images)
                 .Include(p => p.Comments)

@@ -1,32 +1,36 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Shoppers.Data;
+using Shoppers.Data.Entities;
+using Shoppers.Data.Repositories;
 
 namespace Shoppers.Web.AdminMvc.Controllers
 {
+    [Authorize(Roles = "Admin")]
     public class UserController : Controller
     {
-        private readonly ShoppersDbContext _context;
+        private readonly IRepository<UserEntity> _userRepository;
 
-        public UserController(ShoppersDbContext context)
+        public UserController(IRepository<UserEntity> userRepository)
         {
-            _context = context;
+            _userRepository = userRepository;
         }
 
         public IActionResult List()
         {
-            var users = _context.Users
-                .Include(u => u.Role)
-                .OrderByDescending(u => u.CreatedAt)
-                .ToList();
-
+            var users = _userRepository.GetAll()
+                                       .Include(u => u.Role)
+                                       .OrderByDescending(u => u.CreatedAt)
+                                       .ToList();
             return View(users);
         }
 
         [HttpGet]
         public IActionResult Approve(int id)
         {
-            var user = _context.Users.Include(u => u.Role).FirstOrDefault(u => u.Id == id);
+            var user = _userRepository.GetAll()
+                                      .Include(u => u.Role)
+                                      .FirstOrDefault(u => u.Id == id);
             if (user == null) return NotFound();
 
             return View(user);
@@ -35,14 +39,11 @@ namespace Shoppers.Web.AdminMvc.Controllers
         [HttpPost]
         public IActionResult ApproveConfirmed(int id)
         {
-            var user = _context.Users.Find(id);
+            var user = _userRepository.GetById(id);
             if (user != null)
             {
-                // Kullanıcıyı "Seller" (Rol ID: 2) yapıyoruz
-                // Not: Seed datada 1=Buyer, 2=Seller, 3=Admin olarak tanımlı.
                 user.RoleId = 2;
-                _context.Users.Update(user);
-                _context.SaveChanges();
+                _userRepository.Update(user);
             }
             return RedirectToAction(nameof(List));
         }

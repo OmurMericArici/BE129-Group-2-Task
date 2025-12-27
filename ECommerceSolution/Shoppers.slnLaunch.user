@@ -1,0 +1,15 @@
+[
+  {
+    "Name": "Yeni Profil",
+    "Projects": [
+      {
+        "Path": "Shoppers.Web.AdminMvc\\Shoppers.Web.AdminMvc.csproj",
+        "Action": "Start"
+      },
+      {
+        "Path": "Shoppers.Web.Mvc\\Shoppers.Web.Mvc.csproj",
+        "Action": "Start"
+      }
+    ]
+  }
+]

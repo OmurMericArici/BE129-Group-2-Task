@@ -1,7 +1,8 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Shoppers.Data;
+using Shoppers.Data.Entities;
+using Shoppers.Data.Repositories;
 using Shoppers.Web.Mvc.Models;
 using System.Security.Claims;
 
@@ -10,11 +11,18 @@ namespace Shoppers.Web.Mvc.Controllers
     [Authorize]
     public class ProfileController : Controller
     {
-        private readonly ShoppersDbContext _context;
+        private readonly IRepository<UserEntity> _userRepository;
+        private readonly IRepository<ProductEntity> _productRepository;
+        private readonly IRepository<OrderEntity> _orderRepository;
 
-        public ProfileController(ShoppersDbContext context)
+        public ProfileController(
+            IRepository<UserEntity> userRepository,
+            IRepository<ProductEntity> productRepository,
+            IRepository<OrderEntity> orderRepository)
         {
-            _context = context;
+            _userRepository = userRepository;
+            _productRepository = productRepository;
+            _orderRepository = orderRepository;
         }
 
         private int GetUserId()
@@ -27,7 +35,9 @@ namespace Shoppers.Web.Mvc.Controllers
         public IActionResult Details()
         {
             var userId = GetUserId();
-            var user = _context.Users.Include(u => u.Role).FirstOrDefault(u => u.Id == userId);
+            var user = _userRepository.GetAll()
+                                      .Include(u => u.Role)
+                                      .FirstOrDefault(u => u.Id == userId);
 
             if (user == null) return NotFound();
 
@@ -38,7 +48,7 @@ namespace Shoppers.Web.Mvc.Controllers
         public IActionResult Edit()
         {
             var userId = GetUserId();
-            var user = _context.Users.Find(userId);
+            var user = _userRepository.GetById(userId);
 
             if (user == null) return NotFound();
 
@@ -61,30 +71,38 @@ namespace Shoppers.Web.Mvc.Controllers
             }
 
             var userId = GetUserId();
-            var user = _context.Users.Find(userId);
+            var user = _userRepository.GetById(userId);
 
             if (user == null) return NotFound();
 
             user.FirstName = model.FirstName;
             user.LastName = model.LastName;
 
-            _context.Users.Update(user);
-            _context.SaveChanges();
+            _userRepository.Update(user);
 
             ViewBag.SuccessMessage = "Profil bilgileriniz güncellendi.";
             return View(model);
         }
 
+        [Authorize(Roles = "Buyer,Seller")]
         public IActionResult MyOrders()
         {
-            return View();
+            var userId = GetUserId();
+            var orders = _orderRepository.GetAll()
+                .Include(o => o.OrderItems)
+                .Where(o => o.UserId == userId)
+                .OrderByDescending(o => o.CreatedAt)
+                .ToList();
+
+            return View(orders);
         }
 
+        [Authorize(Roles = "Seller")]
         public IActionResult MyProducts()
         {
             var userId = GetUserId();
 
-            var products = _context.Products
+            var products = _productRepository.GetAll()
                                    .Include(p => p.Images)
                                    .Where(p => p.SellerId == userId && p.Enabled)
                                    .OrderByDescending(p => p.CreatedAt)

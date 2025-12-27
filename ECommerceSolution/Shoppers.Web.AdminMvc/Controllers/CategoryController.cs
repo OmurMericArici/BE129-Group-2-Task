@@ -1,23 +1,25 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using Shoppers.Data;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Shoppers.Data.Entities;
+using Shoppers.Data.Repositories;
 using Shoppers.Web.AdminMvc.Models;
 
 namespace Shoppers.Web.AdminMvc.Controllers
 {
+    [Authorize(Roles = "Admin")]
     public class CategoryController : Controller
     {
-        private readonly ShoppersDbContext _context;
+        private readonly IRepository<CategoryEntity> _categoryRepository;
 
-        public CategoryController(ShoppersDbContext context)
+        public CategoryController(IRepository<CategoryEntity> categoryRepository)
         {
-            _context = context;
+            _categoryRepository = categoryRepository;
         }
 
         public IActionResult List()
         {
-            var categories = _context.Categories.ToList();
-            return View(categories); // You might want to create a listing view later
+            var categories = _categoryRepository.GetAll().ToList();
+            return View(categories);
         }
 
         [HttpGet]
@@ -42,16 +44,15 @@ namespace Shoppers.Web.AdminMvc.Controllers
                 CreatedAt = DateTime.Now
             };
 
-            _context.Categories.Add(entity);
-            _context.SaveChanges();
+            _categoryRepository.Add(entity);
 
-            return RedirectToAction("Index", "Home"); // Redirect to Dashboard or List
+            return RedirectToAction("List");
         }
 
         [HttpGet]
         public IActionResult Edit(int id)
         {
-            var entity = _context.Categories.Find(id);
+            var entity = _categoryRepository.GetById(id);
             if (entity == null) return NotFound();
 
             var model = new CategoryEditViewModel
@@ -73,38 +74,32 @@ namespace Shoppers.Web.AdminMvc.Controllers
                 return View(model);
             }
 
-            var entity = _context.Categories.Find(model.Id);
+            var entity = _categoryRepository.GetById(model.Id);
             if (entity == null) return NotFound();
 
             entity.Name = model.Name;
             entity.Color = model.Color;
             entity.IconCssClass = model.IconCssClass;
 
-            _context.Categories.Update(entity);
-            _context.SaveChanges();
+            _categoryRepository.Update(entity);
 
-            return RedirectToAction("Index", "Home");
+            return RedirectToAction("List");
         }
 
         [HttpGet]
         public IActionResult Delete(int id)
         {
-            var entity = _context.Categories.Find(id);
+            var entity = _categoryRepository.GetById(id);
             if (entity == null) return NotFound();
 
-            return View(entity); // We can pass entity directly to delete view for display
+            return View(entity);
         }
 
         [HttpPost]
         public IActionResult DeleteConfirmed(int id)
         {
-            var entity = _context.Categories.Find(id);
-            if (entity != null)
-            {
-                _context.Categories.Remove(entity);
-                _context.SaveChanges();
-            }
-            return RedirectToAction("Index", "Home");
+            _categoryRepository.Delete(id);
+            return RedirectToAction("List");
         }
     }
 }

@@ -1,10 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Shoppers.Data.Entities;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using Shoppers.Data.Configurations;
+using System.Reflection;
 
 namespace Shoppers.Data
 {
@@ -17,35 +14,24 @@ namespace Shoppers.Data
 
         public DbSet<UserEntity> Users { get; set; }
         public DbSet<RoleEntity> Roles { get; set; }
-
         public DbSet<ProductEntity> Products { get; set; }
         public DbSet<ProductImageEntity> ProductImages { get; set; }
         public DbSet<ProductCommentEntity> ProductComments { get; set; }
-
         public DbSet<CategoryEntity> Categories { get; set; }
-
         public DbSet<CartItemEntity> CartItems { get; set; }
-
         public DbSet<OrderEntity> Orders { get; set; }
         public DbSet<OrderItemEntity> OrderItems { get; set; }
 
-
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            // Apply all configuration files (Fluent API)
-            modelBuilder.ApplyConfigurationsFromAssembly(typeof(ShoppersDbContext).Assembly);
+            modelBuilder.ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly());
 
-
-            // ----- SEED DATA -----
-
-            // 1. Roles
             modelBuilder.Entity<RoleEntity>().HasData(
                 new RoleEntity { Id = 1, Name = "buyer", CreatedAt = DateTime.Now },
                 new RoleEntity { Id = 2, Name = "seller", CreatedAt = DateTime.Now },
                 new RoleEntity { Id = 3, Name = "admin", CreatedAt = DateTime.Now }
             );
 
-            // 2. Admin User
             modelBuilder.Entity<UserEntity>().HasData(
                 new UserEntity
                 {
@@ -57,10 +43,31 @@ namespace Shoppers.Data
                     RoleId = 3,
                     Enabled = true,
                     CreatedAt = DateTime.Now
+                },
+                new UserEntity
+                {
+                    Id = 2,
+                    Email = "buyer@shop.com",
+                    FirstName = "John",
+                    LastName = "Buyer",
+                    Password = "123",
+                    RoleId = 1,
+                    Enabled = true,
+                    CreatedAt = DateTime.Now
+                },
+                new UserEntity
+                {
+                    Id = 3,
+                    Email = "seller@shop.com",
+                    FirstName = "Jane",
+                    LastName = "Seller",
+                    Password = "123",
+                    RoleId = 2,
+                    Enabled = true,
+                    CreatedAt = DateTime.Now
                 }
             );
 
-            // 3. Categories 
             modelBuilder.Entity<CategoryEntity>().HasData(
                 new CategoryEntity { Id = 1, Name = "Tops", Color = "red", IconCssClass = "icon-shirt", CreatedAt = DateTime.Now },
                 new CategoryEntity { Id = 2, Name = "Bottoms", Color = "blue", IconCssClass = "icon-trousers", CreatedAt = DateTime.Now },
@@ -74,7 +81,6 @@ namespace Shoppers.Data
                 new CategoryEntity { Id = 10, Name = "Bags", Color = "cyan", IconCssClass = "icon-bag", CreatedAt = DateTime.Now }
             );
 
-            // 4. Initial Product (For Testing Cart)
             modelBuilder.Entity<ProductEntity>().HasData(
                 new ProductEntity
                 {
@@ -82,14 +88,13 @@ namespace Shoppers.Data
                     Name = "Test T-Shirt",
                     Price = 49.99m,
                     StockAmount = 100,
-                    CategoryId = 1, // Tops
-                    SellerId = 1,   // The Admin User
+                    CategoryId = 1,
+                    SellerId = 1,
                     Enabled = true,
                     CreatedAt = DateTime.Now,
                     Details = "A great test product for development purposes."
                 }
             );
-
         }
     }
 }

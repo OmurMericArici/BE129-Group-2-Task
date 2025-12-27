@@ -1,24 +1,27 @@
-﻿using Microsoft.AspNetCore.Authorization; // Eklendi
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Shoppers.Data;
 using Shoppers.Data.Entities;
+using Shoppers.Data.Repositories;
 using Shoppers.Web.Mvc.Models;
-using System.Security.Claims; // Eklendi
+using System.Security.Claims;
 
 namespace Shoppers.Web.Mvc.Controllers
 {
-    [Authorize] // Sepet işlemleri için giriş şartı
+    [Authorize(Roles = "Buyer,Seller")]
     public class CartController : Controller
     {
-        private readonly ShoppersDbContext _context;
+        private readonly IRepository<CartItemEntity> _cartRepository;
+        private readonly IRepository<ProductEntity> _productRepository;
 
-        public CartController(ShoppersDbContext context)
+        public CartController(
+            IRepository<CartItemEntity> cartRepository,
+            IRepository<ProductEntity> productRepository)
         {
-            _context = context;
+            _cartRepository = cartRepository;
+            _productRepository = productRepository;
         }
 
-        // Yardımcı Metot
         private int GetUserId()
         {
             var claim = User.FindFirst(ClaimTypes.NameIdentifier);
@@ -26,31 +29,31 @@ namespace Shoppers.Web.Mvc.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> AddProduct(int productId, int quantity = 1)
+        public IActionResult AddProduct(int productId, int quantity = 1)
         {
             var userId = GetUserId();
 
-            var product = await _context.Products.FindAsync(productId);
+            var product = _productRepository.GetById(productId);
             if (product == null) return NotFound();
 
             if (product.StockAmount < quantity)
             {
-                TempData["Error"] = "Yetersiz stok!";
-                return RedirectToAction(nameof(Edit)); // veya ProductDetail
+                TempData["Error"] = "Insufficient stock!";
+                return RedirectToAction(nameof(Edit));
             }
 
-            var cartItem = await _context.CartItems
-                .FirstOrDefaultAsync(c => c.UserId == userId && c.ProductId == productId);
+            var cartItem = _cartRepository.Get(c => c.UserId == userId && c.ProductId == productId);
 
             if (cartItem != null)
             {
                 if (product.StockAmount >= cartItem.Quantity + quantity)
                 {
                     cartItem.Quantity += (byte)quantity;
+                    _cartRepository.Update(cartItem);
                 }
                 else
                 {
-                    TempData["Error"] = "Stok sınırına ulaşıldı.";
+                    TempData["Error"] = "Stock limit reached.";
                 }
             }
             else
@@ -62,24 +65,22 @@ namespace Shoppers.Web.Mvc.Controllers
                     Quantity = (byte)quantity,
                     CreatedAt = DateTime.Now
                 };
-                _context.CartItems.Add(cartItem);
+                _cartRepository.Add(cartItem);
             }
-
-            await _context.SaveChangesAsync();
 
             return RedirectToAction(nameof(Edit));
         }
 
         [HttpGet]
-        public async Task<IActionResult> Edit()
+        public IActionResult Edit()
         {
             var userId = GetUserId();
 
-            var cartItems = await _context.CartItems
+            var cartItems = _cartRepository.GetAll()
                 .Include(c => c.Product)
                 .ThenInclude(p => p.Images)
                 .Where(c => c.UserId == userId)
-                .ToListAsync();
+                .ToList();
 
             var viewModel = new CartViewModel
             {
@@ -99,39 +100,38 @@ namespace Shoppers.Web.Mvc.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> UpdateCart(Dictionary<int, int> quantities)
+        public IActionResult UpdateCart(Dictionary<int, int> quantities)
         {
-            var userId = GetUserId(); // Güvenlik kontrolü için kullanıcıya ait mi diye bakılabilir
+            var userId = GetUserId();
 
             foreach (var quantity in quantities)
             {
-                var cartItem = await _context.CartItems
+                var cartItem = _cartRepository.GetAll()
                     .Include(c => c.Product)
-                    .FirstOrDefaultAsync(c => c.Id == quantity.Key && c.UserId == userId);
+                    .FirstOrDefault(c => c.Id == quantity.Key && c.UserId == userId);
 
                 if (cartItem != null)
                 {
                     if (quantity.Value > 0 && quantity.Value <= cartItem.Product.StockAmount)
                     {
                         cartItem.Quantity = (byte)quantity.Value;
+                        _cartRepository.Update(cartItem);
                     }
                 }
             }
-            await _context.SaveChangesAsync();
 
             return RedirectToAction(nameof(Edit));
         }
 
         [HttpPost]
-        public async Task<IActionResult> Remove(int cartItemId)
+        public IActionResult Remove(int cartItemId)
         {
             var userId = GetUserId();
-            var cartItem = await _context.CartItems.FirstOrDefaultAsync(c => c.Id == cartItemId && c.UserId == userId);
+            var cartItem = _cartRepository.Get(c => c.Id == cartItemId && c.UserId == userId);
 
             if (cartItem != null)
             {
-                _context.CartItems.Remove(cartItem);
-                await _context.SaveChangesAsync();
+                _cartRepository.Delete(cartItem);
             }
 
             return RedirectToAction(nameof(Edit));

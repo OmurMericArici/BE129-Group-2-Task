@@ -3,10 +3,10 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Mvc;
 using Shoppers.Data.Entities;
 using Shoppers.Data.Repositories;
-using Shoppers.Web.Mvc.Models;
+using Shoppers.Web.AdminMvc.Models;
 using System.Security.Claims;
 
-namespace Shoppers.Web.Mvc.Controllers
+namespace Shoppers.Web.AdminMvc.Controllers
 {
     public class AuthController : Controller
     {
@@ -18,53 +18,8 @@ namespace Shoppers.Web.Mvc.Controllers
         }
 
         [HttpGet]
-        public IActionResult Register()
-        {
-            if (User.Identity!.IsAuthenticated)
-            {
-                return RedirectToAction("Index", "Home");
-            }
-            return View();
-        }
-
-        [HttpPost]
-        public IActionResult Register(RegisterViewModel model)
-        {
-            if (!ModelState.IsValid)
-            {
-                return View(model);
-            }
-
-            if (_userRepository.Any(u => u.Email == model.Email))
-            {
-                ModelState.AddModelError("Email", "Bu email adresi zaten kullanımda.");
-                return View(model);
-            }
-
-            var newUser = new UserEntity
-            {
-                FirstName = model.FirstName,
-                LastName = model.LastName,
-                Email = model.Email,
-                Password = model.Password,
-                RoleId = 1,
-                CreatedAt = DateTime.Now,
-                Enabled = true
-            };
-
-            _userRepository.Add(newUser);
-
-            ViewBag.SuccessMessage = "Kayıt başarılı! Lütfen giriş yapınız.";
-            return RedirectToAction("Login");
-        }
-
-        [HttpGet]
         public IActionResult Login()
         {
-            if (User.Identity!.IsAuthenticated)
-            {
-                return RedirectToAction("Index", "Home");
-            }
             return View();
         }
 
@@ -80,13 +35,13 @@ namespace Shoppers.Web.Mvc.Controllers
 
             if (user == null)
             {
-                ModelState.AddModelError("", "Email veya şifre hatalı.");
+                ModelState.AddModelError("", "Invalid email or password.");
                 return View(model);
             }
 
-            if (!user.Enabled)
+            if (user.RoleId != 3)
             {
-                ModelState.AddModelError("", "Hesabınız pasif durumdadır.");
+                ModelState.AddModelError("", "You are not authorized to access the Admin Panel.");
                 return View(model);
             }
 
@@ -94,8 +49,7 @@ namespace Shoppers.Web.Mvc.Controllers
             {
                 new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
                 new Claim(ClaimTypes.Name, user.Email),
-                new Claim("FullName", $"{user.FirstName} {user.LastName}"),
-                new Claim(ClaimTypes.Role, user.RoleId == 3 ? "Admin" : (user.RoleId == 2 ? "Seller" : "Buyer"))
+                new Claim(ClaimTypes.Role, "Admin")
             };
 
             var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
@@ -116,11 +70,6 @@ namespace Shoppers.Web.Mvc.Controllers
         {
             await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
             return RedirectToAction("Login");
-        }
-
-        public IActionResult ForgotPassword()
-        {
-            return View();
         }
     }
 }

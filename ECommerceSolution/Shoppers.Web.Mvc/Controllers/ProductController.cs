@@ -1,43 +1,62 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
-using Shoppers.Data;
 using Shoppers.Data.Entities;
+using Shoppers.Data.Repositories;
 using Shoppers.Web.Mvc.Models;
+using System.Security.Claims;
 
 namespace Shoppers.Web.Mvc.Controllers
 {
     public class ProductController : Controller
     {
-        private readonly ShoppersDbContext _context;
+        private readonly IRepository<ProductEntity> _productRepository;
+        private readonly IRepository<CategoryEntity> _categoryRepository;
+        private readonly IRepository<ProductImageEntity> _productImageRepository;
+        private readonly IRepository<ProductCommentEntity> _productCommentRepository;
         private readonly IWebHostEnvironment _environment;
 
-        public ProductController(ShoppersDbContext context, IWebHostEnvironment environment)
+        public ProductController(
+            IRepository<ProductEntity> productRepository,
+            IRepository<CategoryEntity> categoryRepository,
+            IRepository<ProductImageEntity> productImageRepository,
+            IRepository<ProductCommentEntity> productCommentRepository,
+            IWebHostEnvironment environment)
         {
-            _context = context;
+            _productRepository = productRepository;
+            _categoryRepository = categoryRepository;
+            _productImageRepository = productImageRepository;
+            _productCommentRepository = productCommentRepository;
             _environment = environment;
         }
 
-        // --- CREATE ---
+        private int GetUserId()
+        {
+            var claim = User.FindFirst(ClaimTypes.NameIdentifier);
+            return claim != null ? int.Parse(claim.Value) : 0;
+        }
+
+        [Authorize(Roles = "Seller")]
         [HttpGet]
         public IActionResult Create()
         {
-            ViewBag.Categories = new SelectList(_context.Categories, "Id", "Name");
+            ViewBag.Categories = new SelectList(_categoryRepository.GetAll(), "Id", "Name");
             return View();
         }
 
+        [Authorize(Roles = "Seller")]
         [HttpPost]
         public async Task<IActionResult> Create(ProductCreateViewModel model)
         {
             if (!ModelState.IsValid)
             {
-                ViewBag.Categories = new SelectList(_context.Categories, "Id", "Name");
+                ViewBag.Categories = new SelectList(_categoryRepository.GetAll(), "Id", "Name");
                 return View(model);
             }
 
-            var userId = 1; // Simulated Logged In User (Seller)
+            var userId = GetUserId();
 
-            // 1. Create Product
             var product = new ProductEntity
             {
                 Name = model.Name,
@@ -50,14 +69,19 @@ namespace Shoppers.Web.Mvc.Controllers
                 Enabled = true
             };
 
-            _context.Products.Add(product);
-            await _context.SaveChangesAsync();
+            _productRepository.Add(product);
 
-            // 2. Handle Image Upload
             if (model.ImageFile != null)
             {
                 var newFileName = Guid.NewGuid().ToString() + Path.GetExtension(model.ImageFile.FileName);
-                var path = Path.Combine(_environment.WebRootPath, "images", newFileName);
+                var imagePath = Path.Combine(_environment.WebRootPath, "images");
+
+                if (!Directory.Exists(imagePath))
+                {
+                    Directory.CreateDirectory(imagePath);
+                }
+
+                var path = Path.Combine(imagePath, newFileName);
 
                 using (var stream = new FileStream(path, FileMode.Create))
                 {
@@ -70,19 +94,26 @@ namespace Shoppers.Web.Mvc.Controllers
                     Url = "/images/" + newFileName,
                     CreatedAt = DateTime.Now
                 };
-                _context.ProductImages.Add(image);
-                await _context.SaveChangesAsync();
+                _productImageRepository.Add(image);
             }
 
             return RedirectToAction("MyProducts", "Profile");
         }
 
-        // --- EDIT ---
+        [Authorize(Roles = "Seller")]
         [HttpGet]
         public IActionResult Edit(int id)
         {
-            var product = _context.Products.Include(p => p.Images).FirstOrDefault(p => p.Id == id);
+            var product = _productRepository.GetAll()
+                                            .Include(p => p.Images)
+                                            .FirstOrDefault(p => p.Id == id);
+
             if (product == null) return NotFound();
+
+            if (product.SellerId != GetUserId())
+            {
+                return Forbid();
+            }
 
             var model = new ProductEditViewModel
             {
@@ -95,21 +126,30 @@ namespace Shoppers.Web.Mvc.Controllers
                 CurrentImageUrl = product.Images.FirstOrDefault()?.Url
             };
 
-            ViewBag.Categories = new SelectList(_context.Categories, "Id", "Name", product.CategoryId);
+            ViewBag.Categories = new SelectList(_categoryRepository.GetAll(), "Id", "Name", product.CategoryId);
             return View(model);
         }
 
+        [Authorize(Roles = "Seller")]
         [HttpPost]
         public async Task<IActionResult> Edit(ProductEditViewModel model)
         {
             if (!ModelState.IsValid)
             {
-                ViewBag.Categories = new SelectList(_context.Categories, "Id", "Name", model.CategoryId);
+                ViewBag.Categories = new SelectList(_categoryRepository.GetAll(), "Id", "Name", model.CategoryId);
                 return View(model);
             }
 
-            var product = await _context.Products.Include(p => p.Images).FirstOrDefaultAsync(p => p.Id == model.Id);
+            var product = _productRepository.GetAll()
+                                            .Include(p => p.Images)
+                                            .FirstOrDefault(p => p.Id == model.Id);
+
             if (product == null) return NotFound();
+
+            if (product.SellerId != GetUserId())
+            {
+                return Forbid();
+            }
 
             product.Name = model.Name;
             product.Price = model.Price;
@@ -119,61 +159,87 @@ namespace Shoppers.Web.Mvc.Controllers
 
             if (model.ImageFile != null)
             {
-                // Simple logic: Upload new, replace old reference (In real app, might want to delete old file)
                 var newFileName = Guid.NewGuid().ToString() + Path.GetExtension(model.ImageFile.FileName);
-                var path = Path.Combine(_environment.WebRootPath, "images", newFileName);
+                var imagePath = Path.Combine(_environment.WebRootPath, "images");
+
+                if (!Directory.Exists(imagePath))
+                {
+                    Directory.CreateDirectory(imagePath);
+                }
+
+                var path = Path.Combine(imagePath, newFileName);
                 using (var stream = new FileStream(path, FileMode.Create))
                 {
                     await model.ImageFile.CopyToAsync(stream);
                 }
 
-                // If exists, update; else add
                 var img = product.Images.FirstOrDefault();
                 if (img != null)
                 {
                     img.Url = "/images/" + newFileName;
-                    _context.Update(img);
+                    _productImageRepository.Update(img);
                 }
                 else
                 {
-                    _context.ProductImages.Add(new ProductImageEntity { ProductId = product.Id, Url = "/images/" + newFileName, CreatedAt = DateTime.Now });
+                    _productImageRepository.Add(new ProductImageEntity
+                    {
+                        ProductId = product.Id,
+                        Url = "/images/" + newFileName,
+                        CreatedAt = DateTime.Now
+                    });
                 }
             }
 
-            _context.Update(product);
-            await _context.SaveChangesAsync();
+            _productRepository.Update(product);
 
             return RedirectToAction("MyProducts", "Profile");
         }
 
-        // --- DELETE ---
+        [Authorize(Roles = "Seller")]
         [HttpGet]
         public IActionResult Delete(int id)
         {
-            var product = _context.Products.Include(p => p.Images).FirstOrDefault(p => p.Id == id);
+            var product = _productRepository.GetAll()
+                                            .Include(p => p.Images)
+                                            .FirstOrDefault(p => p.Id == id);
+
             if (product == null) return NotFound();
+
+            if (product.SellerId != GetUserId())
+            {
+                return Forbid();
+            }
+
             return View(product);
         }
 
+        [Authorize(Roles = "Seller")]
         [HttpPost, ActionName("Delete")]
         public IActionResult DeleteConfirmed(int id)
         {
-            var product = _context.Products.Find(id);
+            var product = _productRepository.GetById(id);
+
             if (product != null)
             {
-                // Soft delete based on Task 11 Scenario 22
+                if (product.SellerId != GetUserId())
+                {
+                    return Forbid();
+                }
+
                 product.Enabled = false;
-                _context.Update(product);
-                _context.SaveChanges();
+                _productRepository.Update(product);
             }
             return RedirectToAction("MyProducts", "Profile");
         }
 
-        // --- COMMENT ---
+        [Authorize(Roles = "Buyer,Seller")]
         [HttpGet]
         public IActionResult Comment(int id)
         {
-            var product = _context.Products.Include(p => p.Images).FirstOrDefault(p => p.Id == id);
+            var product = _productRepository.GetAll()
+                                            .Include(p => p.Images)
+                                            .FirstOrDefault(p => p.Id == id);
+
             if (product == null) return NotFound();
 
             ViewBag.ProductName = product.Name;
@@ -183,13 +249,15 @@ namespace Shoppers.Web.Mvc.Controllers
             return View(new ProductCommentViewModel { ProductId = id });
         }
 
+        [Authorize(Roles = "Buyer,Seller")]
         [HttpPost]
         public IActionResult Comment(ProductCommentViewModel model)
         {
             if (!ModelState.IsValid)
             {
-                // Re-fetch info for display
-                var product = _context.Products.Include(p => p.Images).FirstOrDefault(p => p.Id == model.ProductId);
+                var product = _productRepository.GetAll()
+                                                .Include(p => p.Images)
+                                                .FirstOrDefault(p => p.Id == model.ProductId);
                 ViewBag.ProductName = product?.Name;
                 ViewBag.ProductImage = product?.Images.FirstOrDefault()?.Url;
                 return View(model);
@@ -198,15 +266,14 @@ namespace Shoppers.Web.Mvc.Controllers
             var comment = new ProductCommentEntity
             {
                 ProductId = model.ProductId,
-                UserId = 1, // Hardcoded user
+                UserId = GetUserId(),
                 Text = model.Text,
                 StarCount = model.StarCount,
                 IsConfirmed = false,
                 CreatedAt = DateTime.Now
             };
 
-            _context.ProductComments.Add(comment);
-            _context.SaveChanges();
+            _productCommentRepository.Add(comment);
 
             TempData["SuccessMessage"] = "Comment submitted for approval!";
             return RedirectToAction("Listing", "Home");

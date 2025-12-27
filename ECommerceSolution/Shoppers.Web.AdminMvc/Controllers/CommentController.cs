@@ -1,36 +1,38 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Shoppers.Data;
+using Shoppers.Data.Entities;
+using Shoppers.Data.Repositories;
 
 namespace Shoppers.Web.AdminMvc.Controllers
 {
+    [Authorize(Roles = "Admin")]
     public class CommentController : Controller
     {
-        private readonly ShoppersDbContext _context;
+        private readonly IRepository<ProductCommentEntity> _commentRepository;
 
-        public CommentController(ShoppersDbContext context)
+        public CommentController(IRepository<ProductCommentEntity> commentRepository)
         {
-            _context = context;
+            _commentRepository = commentRepository;
         }
 
         public IActionResult List()
         {
-            var comments = _context.ProductComments
-                .Include(c => c.Product)
-                .Include(c => c.User)
-                .OrderByDescending(c => c.CreatedAt)
-                .ToList();
-
+            var comments = _commentRepository.GetAll()
+                                             .Include(c => c.Product)
+                                             .Include(c => c.User)
+                                             .OrderByDescending(c => c.CreatedAt)
+                                             .ToList();
             return View(comments);
         }
 
         [HttpGet]
         public IActionResult Approve(int id)
         {
-            var comment = _context.ProductComments
-                .Include(c => c.Product)
-                .Include(c => c.User)
-                .FirstOrDefault(c => c.Id == id);
+            var comment = _commentRepository.GetAll()
+                                            .Include(c => c.Product)
+                                            .Include(c => c.User)
+                                            .FirstOrDefault(c => c.Id == id);
 
             if (comment == null) return NotFound();
 
@@ -40,12 +42,11 @@ namespace Shoppers.Web.AdminMvc.Controllers
         [HttpPost]
         public IActionResult ApproveConfirmed(int id)
         {
-            var comment = _context.ProductComments.Find(id);
+            var comment = _commentRepository.GetById(id);
             if (comment != null)
             {
                 comment.IsConfirmed = true;
-                _context.ProductComments.Update(comment);
-                _context.SaveChanges();
+                _commentRepository.Update(comment);
             }
             return RedirectToAction(nameof(List));
         }
