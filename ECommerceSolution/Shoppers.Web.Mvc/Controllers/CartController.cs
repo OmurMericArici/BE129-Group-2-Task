@@ -1,90 +1,68 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using Shoppers.Data.Entities;
-using Shoppers.Data.Repositories;
 using Shoppers.Web.Mvc.Models;
-using System.Security.Claims;
+using System.Net.Http.Headers;
+using System.Text;
+using System.Text.Json;
 
 namespace Shoppers.Web.Mvc.Controllers
 {
-    [Authorize(Roles = "Buyer,Seller")]
+    [Authorize]
     public class CartController : Controller
     {
-        private readonly IRepository<CartItemEntity> _cartRepository;
-        private readonly IRepository<ProductEntity> _productRepository;
+        private readonly IHttpClientFactory _httpClientFactory;
+        private readonly JsonSerializerOptions _jsonOptions;
 
-        public CartController(
-            IRepository<CartItemEntity> cartRepository,
-            IRepository<ProductEntity> productRepository)
+        public CartController(IHttpClientFactory httpClientFactory)
         {
-            _cartRepository = cartRepository;
-            _productRepository = productRepository;
+            _httpClientFactory = httpClientFactory;
+            _jsonOptions = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
         }
 
-        private int GetUserId()
+        private void AddAuthHeader(HttpClient client)
         {
-            var claim = User.FindFirst(ClaimTypes.NameIdentifier);
-            return claim != null ? int.Parse(claim.Value) : 0;
+            var token = Request.Cookies["ShoppersToken"];
+            if (!string.IsNullOrEmpty(token))
+            {
+                client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            }
         }
 
         [HttpPost]
-        public IActionResult AddProduct(int productId, int quantity = 1)
+        public async Task<IActionResult> AddProduct(int productId, int quantity = 1)
         {
-            var userId = GetUserId();
+            var client = _httpClientFactory.CreateClient("DataApi");
+            AddAuthHeader(client);
 
-            var product = _productRepository.GetById(productId);
-            if (product == null) return NotFound();
+            var response = await client.PostAsync($"cart/add?productId={productId}&quantity={quantity}", null);
 
-            if (product.StockAmount < quantity)
+            if (!response.IsSuccessStatusCode)
             {
-                TempData["Error"] = "Insufficient stock!";
-                return RedirectToAction(nameof(Edit));
-            }
-
-            var cartItem = _cartRepository.Get(c => c.UserId == userId && c.ProductId == productId);
-
-            if (cartItem != null)
-            {
-                if (product.StockAmount >= cartItem.Quantity + quantity)
-                {
-                    cartItem.Quantity += (byte)quantity;
-                    _cartRepository.Update(cartItem);
-                }
-                else
-                {
-                    TempData["Error"] = "Stock limit reached.";
-                }
-            }
-            else
-            {
-                cartItem = new CartItemEntity
-                {
-                    UserId = userId,
-                    ProductId = productId,
-                    Quantity = (byte)quantity,
-                    CreatedAt = DateTime.Now
-                };
-                _cartRepository.Add(cartItem);
+                TempData["Error"] = "Could not add item to cart.";
             }
 
             return RedirectToAction(nameof(Edit));
         }
 
         [HttpGet]
-        public IActionResult Edit()
+        public async Task<IActionResult> Edit()
         {
-            var userId = GetUserId();
+            var client = _httpClientFactory.CreateClient("DataApi");
+            AddAuthHeader(client);
 
-            var cartItems = _cartRepository.GetAll()
-                .Include(c => c.Product)
-                .ThenInclude(p => p.Images)
-                .Where(c => c.UserId == userId)
-                .ToList();
+            var response = await client.GetAsync("cart");
+            var cartItems = new List<CartItemEntity>();
+
+            if (response.IsSuccessStatusCode)
+            {
+                var stream = await response.Content.ReadAsStreamAsync();
+                cartItems = await JsonSerializer.DeserializeAsync<List<CartItemEntity>>(stream, _jsonOptions);
+            }
 
             var viewModel = new CartViewModel
             {
-                Items = cartItems.Select(c => new CartItemViewModel
+                Items = cartItems!.Select(c => new CartItemViewModel
                 {
                     CartItemId = c.Id,
                     ProductId = c.ProductId,
@@ -100,39 +78,24 @@ namespace Shoppers.Web.Mvc.Controllers
         }
 
         [HttpPost]
-        public IActionResult UpdateCart(Dictionary<int, int> quantities)
+        public async Task<IActionResult> UpdateCart(Dictionary<int, int> quantities)
         {
-            var userId = GetUserId();
+            var client = _httpClientFactory.CreateClient("DataApi");
+            AddAuthHeader(client);
 
-            foreach (var quantity in quantities)
-            {
-                var cartItem = _cartRepository.GetAll()
-                    .Include(c => c.Product)
-                    .FirstOrDefault(c => c.Id == quantity.Key && c.UserId == userId);
-
-                if (cartItem != null)
-                {
-                    if (quantity.Value > 0 && quantity.Value <= cartItem.Product.StockAmount)
-                    {
-                        cartItem.Quantity = (byte)quantity.Value;
-                        _cartRepository.Update(cartItem);
-                    }
-                }
-            }
+            var jsonContent = new StringContent(JsonSerializer.Serialize(quantities), Encoding.UTF8, "application/json");
+            await client.PutAsync("cart/update", jsonContent);
 
             return RedirectToAction(nameof(Edit));
         }
 
         [HttpPost]
-        public IActionResult Remove(int cartItemId)
+        public async Task<IActionResult> Remove(int cartItemId)
         {
-            var userId = GetUserId();
-            var cartItem = _cartRepository.Get(c => c.Id == cartItemId && c.UserId == userId);
+            var client = _httpClientFactory.CreateClient("DataApi");
+            AddAuthHeader(client);
 
-            if (cartItem != null)
-            {
-                _cartRepository.Delete(cartItem);
-            }
+            await client.DeleteAsync($"cart/{cartItemId}");
 
             return RedirectToAction(nameof(Edit));
         }

@@ -1,53 +1,68 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using Shoppers.Data.Entities;
-using Shoppers.Data.Repositories;
+using System.Net.Http.Headers;
+using System.Text.Json;
 
 namespace Shoppers.Web.AdminMvc.Controllers
 {
     [Authorize(Roles = "Admin")]
     public class CommentController : Controller
     {
-        private readonly IRepository<ProductCommentEntity> _commentRepository;
+        private readonly IHttpClientFactory _httpClientFactory;
+        private readonly JsonSerializerOptions _jsonOptions;
 
-        public CommentController(IRepository<ProductCommentEntity> commentRepository)
+        public CommentController(IHttpClientFactory httpClientFactory)
         {
-            _commentRepository = commentRepository;
+            _httpClientFactory = httpClientFactory;
+            _jsonOptions = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
         }
 
-        public IActionResult List()
+        private void AddAuthHeader(HttpClient client)
         {
-            var comments = _commentRepository.GetAll()
-                                             .Include(c => c.Product)
-                                             .Include(c => c.User)
-                                             .OrderByDescending(c => c.CreatedAt)
-                                             .ToList();
-            return View(comments);
+            var token = Request.Cookies["ShoppersAdminToken"];
+            if (!string.IsNullOrEmpty(token))
+            {
+                client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            }
+        }
+
+        public async Task<IActionResult> List()
+        {
+            var client = _httpClientFactory.CreateClient("DataApi");
+            AddAuthHeader(client);
+
+            var response = await client.GetAsync("comment");
+            if (response.IsSuccessStatusCode)
+            {
+                var comments = await JsonSerializer.DeserializeAsync<List<ProductCommentEntity>>(await response.Content.ReadAsStreamAsync(), _jsonOptions);
+                return View(comments);
+            }
+            return View(new List<ProductCommentEntity>());
         }
 
         [HttpGet]
-        public IActionResult Approve(int id)
+        public async Task<IActionResult> Approve(int id)
         {
-            var comment = _commentRepository.GetAll()
-                                            .Include(c => c.Product)
-                                            .Include(c => c.User)
-                                            .FirstOrDefault(c => c.Id == id);
+            var client = _httpClientFactory.CreateClient("DataApi");
+            AddAuthHeader(client);
 
-            if (comment == null) return NotFound();
-
-            return View(comment);
+            var response = await client.GetAsync($"comment/{id}");
+            if (response.IsSuccessStatusCode)
+            {
+                var comment = await JsonSerializer.DeserializeAsync<ProductCommentEntity>(await response.Content.ReadAsStreamAsync(), _jsonOptions);
+                return View(comment);
+            }
+            return NotFound();
         }
 
         [HttpPost]
-        public IActionResult ApproveConfirmed(int id)
+        public async Task<IActionResult> ApproveConfirmed(int id)
         {
-            var comment = _commentRepository.GetById(id);
-            if (comment != null)
-            {
-                comment.IsConfirmed = true;
-                _commentRepository.Update(comment);
-            }
+            var client = _httpClientFactory.CreateClient("DataApi");
+            AddAuthHeader(client);
+
+            await client.PostAsync($"comment/approve/{id}", null);
             return RedirectToAction(nameof(List));
         }
     }

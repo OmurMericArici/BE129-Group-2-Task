@@ -1,20 +1,19 @@
-﻿using Microsoft.AspNetCore.Authentication;
-using Microsoft.AspNetCore.Authentication.Cookies;
-using Microsoft.AspNetCore.Mvc;
-using Shoppers.Data.Entities;
-using Shoppers.Data.Repositories;
+﻿using Microsoft.AspNetCore.Mvc;
 using Shoppers.Web.AdminMvc.Models;
+using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using System.Text;
+using System.Text.Json;
 
 namespace Shoppers.Web.AdminMvc.Controllers
 {
     public class AuthController : Controller
     {
-        private readonly IRepository<UserEntity> _userRepository;
+        private readonly IHttpClientFactory _httpClientFactory;
 
-        public AuthController(IRepository<UserEntity> userRepository)
+        public AuthController(IHttpClientFactory httpClientFactory)
         {
-            _userRepository = userRepository;
+            _httpClientFactory = httpClientFactory;
         }
 
         [HttpGet]
@@ -26,49 +25,51 @@ namespace Shoppers.Web.AdminMvc.Controllers
         [HttpPost]
         public async Task<IActionResult> Login(LoginViewModel model)
         {
-            if (!ModelState.IsValid)
+            if (!ModelState.IsValid) return View(model);
+
+            var client = _httpClientFactory.CreateClient("DataApi");
+            var jsonContent = new StringContent(JsonSerializer.Serialize(model), Encoding.UTF8, "application/json");
+
+            var response = await client.PostAsync("auth/login", jsonContent);
+
+            if (response.IsSuccessStatusCode)
             {
-                return View(model);
+                var responseStream = await response.Content.ReadAsStreamAsync();
+                var jsonOptions = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+                var result = await JsonSerializer.DeserializeAsync<JsonElement>(responseStream, jsonOptions);
+
+                if (result.TryGetProperty("Token", out var tokenProperty) || result.TryGetProperty("token", out tokenProperty))
+                {
+                    var token = tokenProperty.GetString();
+                    var handler = new JwtSecurityTokenHandler();
+                    var jwtToken = handler.ReadJwtToken(token);
+                    var roleClaim = jwtToken.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value;
+
+                    if (roleClaim != "Admin")
+                    {
+                        ModelState.AddModelError("", "Bu alana girmek için yetkiniz yok.");
+                        return View(model);
+                    }
+
+                    Response.Cookies.Append("ShoppersAdminToken", token!, new CookieOptions
+                    {
+                        HttpOnly = true,
+                        Expires = DateTime.Now.AddDays(1),
+                        Secure = true,
+                        SameSite = SameSiteMode.Strict
+                    });
+
+                    return RedirectToAction("Index", "Home");
+                }
             }
 
-            var user = _userRepository.Get(u => u.Email == model.Email && u.Password == model.Password);
-
-            if (user == null)
-            {
-                ModelState.AddModelError("", "Invalid email or password.");
-                return View(model);
-            }
-
-            if (user.RoleId != 3)
-            {
-                ModelState.AddModelError("", "You are not authorized to access the Admin Panel.");
-                return View(model);
-            }
-
-            var claims = new List<Claim>
-            {
-                new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
-                new Claim(ClaimTypes.Name, user.Email),
-                new Claim(ClaimTypes.Role, "Admin")
-            };
-
-            var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
-            var authProperties = new AuthenticationProperties
-            {
-                IsPersistent = true
-            };
-
-            await HttpContext.SignInAsync(
-                CookieAuthenticationDefaults.AuthenticationScheme,
-                new ClaimsPrincipal(claimsIdentity),
-                authProperties);
-
-            return RedirectToAction("Index", "Home");
+            ModelState.AddModelError("", "Giriş başarısız veya yetkisiz.");
+            return View(model);
         }
 
-        public async Task<IActionResult> Logout()
+        public IActionResult Logout()
         {
-            await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+            Response.Cookies.Delete("ShoppersAdminToken");
             return RedirectToAction("Login");
         }
     }

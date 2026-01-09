@@ -1,10 +1,16 @@
-﻿<div class="bg-light py-3">
+﻿@model Shoppers.Data.Entities.ProductEntity
+
+@{
+    ViewData["Title"] = Model.Name;
+}
+
+<div class="bg-light py-3">
     <div class="container">
         <div class="row">
             <div class="col-md-12 mb-0">
                 <a href="/Home/Index">Home</a>
                 <span class="mx-2 mb-0">/</span>
-                <strong class="text-black">Tank Top T-Shirt</strong>
+                <strong class="text-black">@Model.Name</strong>
             </div>
         </div>
     </div>
@@ -15,43 +21,28 @@
         <div class="row">
 
             <div class="col-md-6">
-                <img src="~/images/cloth_1.jpg" alt="Image" class="img-fluid">
+                @if (Model.Images != null && Model.Images.Any())
+                {
+                    <img src="@Model.Images.First().Url" alt="@Model.Name" class="img-fluid">
+                }
+                else
+                {
+                    <img src="~/images/cloth_1.jpg" alt="No Image" class="img-fluid">
+                }
             </div>
 
             <div class="col-md-6">
-                <h2 class="text-black">Tank Top T-Shirt</h2>
-                <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit...</p>
-                <p class="mb-4">Ex numquam veritatis debitis minima...</p>
+                <h2 class="text-black">@Model.Name</h2>
+                <p>@Model.Details</p>
 
-                <p><strong class="text-primary h4">$49.99</strong></p>
-
-                <div class="mb-1 d-flex">
-                    <label for="option-sm" class="d-flex mr-3 mb-3">
-                        <span class="d-inline-block mr-2"><input type="radio" id="option-sm" name="shop-sizes"></span>
-                        <span class="d-inline-block text-black">Small</span>
-                    </label>
-
-                    <label for="option-md" class="d-flex mr-3 mb-3">
-                        <span class="d-inline-block mr-2"><input type="radio" id="option-md" name="shop-sizes"></span>
-                        <span class="d-inline-block text-black">Medium</span>
-                    </label>
-
-                    <label for="option-lg" class="d-flex mr-3 mb-3">
-                        <span class="d-inline-block mr-2"><input type="radio" id="option-lg" name="shop-sizes"></span>
-                        <span class="d-inline-block text-black">Large</span>
-                    </label>
-
-                    <label for="option-xl" class="d-flex mr-3 mb-3">
-                        <span class="d-inline-block mr-2"><input type="radio" id="option-xl" name="shop-sizes"></span>
-                        <span class="d-inline-block text-black">Extra Large</span>
-                    </label>
-                </div>
+                <p><strong class="text-primary h4">@Model.Price.ToString("C")</strong></p>
+                <p>Stock: @Model.StockAmount</p>
 
                 <!-- ADD TO CART FORM START -->
                 <form method="post" asp-controller="Cart" asp-action="AddProduct">
 
-                    <!-- Hardcoded Product ID to match the Seed Data in DbContext -->
-                    <input type="hidden" name="productId" value="1" />
+                    <!-- DÜZELTME: Hardcoded value="1" yerine @Model.Id kullanıldı -->
+                    <input type="hidden" name="productId" value="@Model.Id" />
 
                     <div class="mb-5">
                         <div class="input-group mb-3" style="max-width: 120px;">
@@ -59,7 +50,6 @@
                                 <button class="btn btn-outline-primary js-btn-minus" type="button">&minus;</button>
                             </div>
 
-                            <!-- Name="quantity" binds to the Controller parameter -->
                             <input type="text" name="quantity" class="form-control text-center" value="1">
 
                             <div class="input-group-append">
@@ -69,101 +59,19 @@
                     </div>
 
                     <p>
-                        <!-- Submit button triggers the POST to Cart/AddProduct -->
-                        <button type="submit" class="buy-now btn btn-sm btn-primary">Add To Cart</button>
+                        @if (Model.StockAmount > 0)
+                        {
+                            <button type="submit" class="buy-now btn btn-sm btn-primary">Add To Cart</button>
+                        }
+                        else
+                        {
+                            <button type="button" class="btn btn-sm btn-secondary" disabled>Out of Stock</button>
+                        }
                     </p>
                 </form>
                 <!-- ADD TO CART FORM END -->
 
             </div>
         </div>
-    </div>
-</div>
-
-
-<div class="site-section block-3 site-blocks-2 bg-light">
-    <div class="container">
-        <div class="row justify-content-center">
-            <div class="col-md-7 site-section-heading text-center pt-4">
-                <h2>Featured Products</h2>
-            </div>
-        </div>
-
-        <div class="row">
-            <div class="col-md-12">
-                <div class="nonloop-block-3 owl-carousel">
-
-
-                    <div class="item">
-                        <div class="block-4 text-center">
-                            <figure class="block-4-image">
-                                <img src="~/images/cloth_1.jpg" alt="Image placeholder" class="img-fluid">
-                            </figure>
-                            <div class="block-4-text p-4">
-                                <h3><a href="#">Tank Top</a></h3>
-                                <p class="mb-0">Finding perfect t-shirt</p>
-                                <p class="text-primary font-weight-bold">$50</p>
-                            </div>
-                        </div>
-                    </div>
-
-
-                    <div class="item">
-                        <div class="block-4 text-center">
-                            <figure class="block-4-image">
-                                <img src="~/images/shoe_1.jpg" alt="Image placeholder" class="img-fluid">
-                            </figure>
-                            <div class="block-4-text p-4">
-                                <h3><a href="#">Corater</a></h3>
-                                <p class="mb-0">Finding perfect products</p>
-                                <p class="text-primary font-weight-bold">$50</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="item">
-                        <div class="block-4 text-center">
-                            <figure class="block-4-image">
-                                <img src="~/images/cloth_2.jpg" alt="Image placeholder" class="img-fluid">
-                            </figure>
-                            <div class="block-4-text p-4">
-                                <h3><a href="#">Polo Shirt</a></h3>
-                                <p class="mb-0">Finding perfect products</p>
-                                <p class="text-primary font-weight-bold">$50</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="item">
-                        <div class="block-4 text-center">
-                            <figure class="block-4-image">
-                                <img src="~/images/cloth_3.jpg" alt="Image placeholder" class="img-fluid">
-                            </figure>
-                            <div class="block-4-text p-4">
-                                <h3><a href="#">T-Shirt Mockup</a></h3>
-                                <p class="mb-0">Finding perfect products</p>
-                                <p class="text-primary font-weight-bold">$50</p>
-                            </div>
-                        </div>
-                    </div>
-
-
-                    <div class="item">
-                        <div class="block-4 text-center">
-                            <figure class="block-4-image">
-                                <img src="~/images/shoe_1.jpg" alt="Image placeholder" class="img-fluid">
-                            </figure>
-                            <div class="block-4-text p-4">
-                                <h3><a href="#">Corater</a></h3>
-                                <p class="mb-0">Finding perfect products</p>
-                                <p class="text-primary font-weight-bold">$50</p>
-                            </div>
-                        </div>
-                    </div>
-
-                </div>
-            </div>
-        </div>
-
     </div>
 </div>

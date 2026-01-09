@@ -3,12 +3,24 @@
     "Name": "Yeni Profil",
     "Projects": [
       {
-        "Path": "Shoppers.Web.AdminMvc\\Shoppers.Web.AdminMvc.csproj",
-        "Action": "Start"
+        "Path": "App.Api.Data\\App.Api.Data.csproj",
+        "Action": "Start",
+        "DebugTarget": "https"
+      },
+      {
+        "Path": "App.Api.File\\App.Api.File.csproj",
+        "Action": "Start",
+        "DebugTarget": "https"
       },
       {
         "Path": "Shoppers.Web.Mvc\\Shoppers.Web.Mvc.csproj",
-        "Action": "Start"
+        "Action": "Start",
+        "DebugTarget": "https"
+      },
+      {
+        "Path": "Shoppers.Web.AdminMvc\\Shoppers.Web.AdminMvc.csproj",
+        "Action": "Start",
+        "DebugTarget": "https"
       }
     ]
   }

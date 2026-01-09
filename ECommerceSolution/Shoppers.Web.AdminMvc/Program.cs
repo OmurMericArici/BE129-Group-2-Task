@@ -1,37 +1,67 @@
-using Shoppers.Data;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.AspNetCore.Authentication.Cookies;
-using Shoppers.Data.Repositories;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllersWithViews();
 
-builder.Services.AddDbContext<ShoppersDbContext>(options =>
-    options.UseSqlServer(
-        builder.Configuration.GetConnectionString("DefaultConnection")
-    )
-);
+builder.Services.AddHttpClient("DataApi", client =>
+{
+    client.BaseAddress = new Uri(builder.Configuration["ApiSettings:DataApiUrl"]!);
+});
 
-builder.Services.AddScoped(typeof(IRepository<>), typeof(DataRepository<>));
+builder.Services.AddHttpClient("FileApi", client =>
+{
+    client.BaseAddress = new Uri(builder.Configuration["ApiSettings:FileApiUrl"]!);
+});
 
-builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
-    .AddCookie(options =>
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
     {
-        options.LoginPath = "/Auth/Login";
-        options.LogoutPath = "/Auth/Logout";
-        options.Cookie.Name = "ShoppersAdminAuth";
-        options.ExpireTimeSpan = TimeSpan.FromDays(1);
-        options.SlidingExpiration = true;
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            ValidIssuer = builder.Configuration["Jwt:Issuer"],
+            ValidAudience = builder.Configuration["Jwt:Audience"],
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]!))
+        };
+
+        options.Events = new JwtBearerEvents
+        {
+            OnMessageReceived = context =>
+            {
+                var token = context.Request.Cookies["ShoppersAdminToken"];
+                if (!string.IsNullOrEmpty(token))
+                {
+                    context.Token = token;
+                }
+                return Task.CompletedTask;
+            },
+            OnChallenge = context =>
+            {
+                context.HandleResponse();
+                context.Response.Redirect("/Auth/Login");
+                return Task.CompletedTask;
+            }
+        };
     });
 
 var app = builder.Build();
 
-if (!app.Environment.IsDevelopment())
+app.UseExceptionHandler(errorApp =>
 {
-    app.UseExceptionHandler("/Home/Error");
-    app.UseHsts();
-}
+    errorApp.Run(async context =>
+    {
+        context.Response.Redirect("/");
+        await Task.CompletedTask;
+    });
+});
+
+app.UseStatusCodePagesWithRedirects("/");
 
 app.UseHttpsRedirection();
 app.UseStaticFiles();

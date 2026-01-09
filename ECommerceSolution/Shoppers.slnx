@@ -1,4 +1,6 @@
 <Solution>
+  <Project Path="App.Api.Data/App.Api.Data.csproj" Id="13adac5b-8845-45f4-b98e-50a09d034c57" />
+  <Project Path="App.Api.File/App.Api.File.csproj" Id="99f2dbe6-18ae-4f2c-a970-c6d2d6f3e7a5" />
   <Project Path="Shoppers.Data/Shoppers.Data.csproj" Id="e3a5bf38-0dc7-4632-9434-1819e826ae66" />
   <Project Path="Shoppers.Web.AdminMvc/Shoppers.Web.AdminMvc.csproj" />
   <Project Path="Shoppers.Web.Mvc/Shoppers.Web.Mvc.csproj" />

@@ -1,39 +1,52 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Shoppers.Data.Entities;
-using Shoppers.Data.Repositories;
-using Microsoft.EntityFrameworkCore;
+using System.Net.Http.Headers;
+using System.Text.Json;
 
 namespace Shoppers.Web.AdminMvc.Controllers
 {
     [Authorize(Roles = "Admin")]
     public class ProductController : Controller
     {
-        private readonly IRepository<ProductEntity> _productRepository;
+        private readonly IHttpClientFactory _httpClientFactory;
+        private readonly JsonSerializerOptions _jsonOptions;
 
-        public ProductController(IRepository<ProductEntity> productRepository)
+        public ProductController(IHttpClientFactory httpClientFactory)
         {
-            _productRepository = productRepository;
+            _httpClientFactory = httpClientFactory;
+            _jsonOptions = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
         }
 
-        public IActionResult Index()
+        private void AddAuthHeader(HttpClient client)
         {
-            var products = _productRepository.GetAll()
-                                             .Include(p => p.Category)
-                                             .Include(p => p.Seller)
-                                             .ToList();
-            return View(products);
+            var token = Request.Cookies["ShoppersAdminToken"];
+            if (!string.IsNullOrEmpty(token))
+            {
+                client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            }
+        }
+
+        public async Task<IActionResult> Index()
+        {
+            var client = _httpClientFactory.CreateClient("DataApi");
+            var response = await client.GetAsync("product");
+
+            if (response.IsSuccessStatusCode)
+            {
+                var products = await JsonSerializer.DeserializeAsync<List<ProductEntity>>(await response.Content.ReadAsStreamAsync(), _jsonOptions);
+                return View(products);
+            }
+            return View(new List<ProductEntity>());
         }
 
         [HttpPost]
-        public IActionResult Delete(int id)
+        public async Task<IActionResult> Delete(int id)
         {
-            var product = _productRepository.GetById(id);
-            if (product != null)
-            {
-                product.Enabled = false;
-                _productRepository.Update(product);
-            }
+            var client = _httpClientFactory.CreateClient("DataApi");
+            AddAuthHeader(client);
+
+            await client.DeleteAsync($"product/{id}");
             return RedirectToAction("Index");
         }
     }

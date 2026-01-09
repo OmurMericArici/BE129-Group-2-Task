@@ -1,9 +1,10 @@
-﻿@{
+﻿@model List<Shoppers.Data.Entities.ProductEntity>
+
+@{
     ViewData["Title"] = "Home";
 }
 
 <!-- Hero Section -->
-<!-- Fixed: Changed '~/images' to '/images' inside the style attribute so the background loads -->
 <div class="site-blocks-cover" style="background-image: url('/images/hero_1.jpg');" data-aos="fade">
     <div class="container">
         <div class="row align-items-start align-items-md-center justify-content-end">
@@ -12,7 +13,6 @@
                 <div class="intro-text text-center text-md-left">
                     <p class="mb-4">Lorem ipsum dolor sit amet, consectetur adipiscing elit. Phasellus at iaculis quam. Integer accumsan tincidunt fringilla.</p>
                     <p>
-                        <!-- Fixed: Linked to the Shop (Listing) page -->
                         <a asp-controller="Home" asp-action="Listing" class="btn btn-sm btn-primary">Shop Now</a>
                     </p>
                 </div>
@@ -26,7 +26,6 @@
     <div class="container">
         <div class="row">
             <div class="col-sm-6 col-md-6 col-lg-4 mb-4 mb-lg-0" data-aos="fade" data-aos-delay="">
-                <!-- Fixed: Image path and Link -->
                 <a class="block-2-item" asp-controller="Home" asp-action="Listing" asp-route-category="women">
                     <figure class="image">
                         <img src="/images/women.jpg" alt="" class="img-fluid">
@@ -78,75 +77,41 @@
             <div class="col-md-12">
                 <div class="nonloop-block-3 owl-carousel">
 
-                    <!-- Static Item 1: Linked to Test Product ID 1 -->
-                    <div class="item">
-                        <div class="block-4 text-center">
-                            <figure class="block-4-image">
-                                <img src="/images/cloth_1.jpg" alt="Image placeholder" class="img-fluid" />
-                            </figure>
-                            <div class="block-4-text p-4">
-                                <h3><a asp-controller="Home" asp-action="ProductDetail" asp-route-id="1">Tank Top</a></h3>
-                                <p class="mb-0">Finding perfect t-shirt</p>
-                                <p class="text-primary font-weight-bold">$50</p>
+                    @if (Model != null && Model.Any())
+                    {
+                        @foreach (var item in Model)
+                        {
+                            <div class="item">
+                                <div class="block-4 text-center">
+                                    <figure class="block-4-image">
+                                        <a asp-controller="Home" asp-action="ProductDetail" asp-route-id="@item.Id">
+                                            @if (item.Images != null && item.Images.Any())
+                                            {
+                                                <img src="@item.Images.First().Url" alt="@item.Name" class="img-fluid" style="height:200px; object-fit:cover;">
+                                            }
+                                            else
+                                            {
+                                                <img src="/images/cloth_1.jpg" alt="Placeholder" class="img-fluid">
+                                            }
+                                        </a>
+                                    </figure>
+                                    <div class="block-4-text p-4">
+                                        <h3><a asp-controller="Home" asp-action="ProductDetail" asp-route-id="@item.Id">@item.Name</a></h3>
+                                        <p class="mb-0">@item.Category?.Name</p>
+                                        <p class="text-primary font-weight-bold">@item.Price.ToString("C")</p>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <div class="item">
+                            <div class="text-center p-4">
+                                <p>No products found.</p>
                             </div>
                         </div>
-                    </div>
-
-                    <!-- Static Item 2 -->
-                    <div class="item">
-                        <div class="block-4 text-center">
-                            <figure class="block-4-image">
-                                <img src="/images/shoe_1.jpg" alt="Image placeholder" class="img-fluid" />
-                            </figure>
-                            <div class="block-4-text p-4">
-                                <h3><a asp-controller="Home" asp-action="ProductDetail" asp-route-id="1">Corater</a></h3>
-                                <p class="mb-0">Finding perfect products</p>
-                                <p class="text-primary font-weight-bold">$50</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Static Item 3 -->
-                    <div class="item">
-                        <div class="block-4 text-center">
-                            <figure class="block-4-image">
-                                <img src="/images/cloth_2.jpg" alt="Image placeholder" class="img-fluid" />
-                            </figure>
-                            <div class="block-4-text p-4">
-                                <h3><a asp-controller="Home" asp-action="ProductDetail" asp-route-id="1">Polo Shirt</a></h3>
-                                <p class="mb-0">Finding perfect products</p>
-                                <p class="text-primary font-weight-bold">$50</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Static Item 4 -->
-                    <div class="item">
-                        <div class="block-4 text-center">
-                            <figure class="block-4-image">
-                                <img src="/images/cloth_3.jpg" alt="Image placeholder" class="img-fluid" />
-                            </figure>
-                            <div class="block-4-text p-4">
-                                <h3><a asp-controller="Home" asp-action="ProductDetail" asp-route-id="1">T-Shirt Mockup</a></h3>
-                                <p class="mb-0">Finding perfect products</p>
-                                <p class="text-primary font-weight-bold">$50</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Static Item 5 -->
-                    <div class="item">
-                        <div class="block-4 text-center">
-                            <figure class="block-4-image">
-                                <img src="/images/shoe_1.jpg" alt="Image placeholder" class="img-fluid" />
-                            </figure>
-                            <div class="block-4-text p-4">
-                                <h3><a asp-controller="Home" asp-action="ProductDetail" asp-route-id="1">Corater</a></h3>
-                                <p class="mb-0">Finding perfect products</p>
-                                <p class="text-primary font-weight-bold">$50</p>
-                            </div>
-                        </div>
-                    </div>
+                    }
 
                 </div>
             </div>

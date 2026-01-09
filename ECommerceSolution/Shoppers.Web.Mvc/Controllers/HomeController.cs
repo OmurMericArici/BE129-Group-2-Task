@@ -1,87 +1,95 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using Shoppers.Data.Entities;
-using Shoppers.Data.Repositories;
+using System.Text.Json;
 
 namespace Shoppers.Web.Mvc.Controllers
 {
     public class HomeController : Controller
     {
-        private readonly IRepository<ProductEntity> _productRepository;
-        private readonly IRepository<CategoryEntity> _categoryRepository;
+        private readonly IHttpClientFactory _httpClientFactory;
+        private readonly JsonSerializerOptions _jsonOptions;
 
-        public HomeController(IRepository<ProductEntity> productRepository, IRepository<CategoryEntity> categoryRepository)
+        public HomeController(IHttpClientFactory httpClientFactory)
         {
-            _productRepository = productRepository;
-            _categoryRepository = categoryRepository;
+            _httpClientFactory = httpClientFactory;
+            _jsonOptions = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
         }
 
-        public IActionResult Index()
+        public async Task<IActionResult> Index()
         {
-            var products = _productRepository.GetAll()
-                                   .Include(p => p.Images)
-                                   .Where(p => p.Enabled)
-                                   .OrderByDescending(p => p.CreatedAt)
-                                   .Take(6)
-                                   .ToList();
-            return View(products);
+            var client = _httpClientFactory.CreateClient("DataApi");
+
+            var response = await client.GetAsync("product");
+
+            if (response.IsSuccessStatusCode)
+            {
+                var stream = await response.Content.ReadAsStreamAsync();
+                var products = await JsonSerializer.DeserializeAsync<List<ProductEntity>>(stream, _jsonOptions);
+
+                var featured = products?.Take(6).ToList();
+                return View(featured);
+            }
+
+            return View(new List<ProductEntity>());
         }
 
-        public IActionResult Listing(string category, string sort)
+        public async Task<IActionResult> Listing(string category, string sort)
         {
-            var query = _productRepository.GetAll()
-                                .Include(p => p.Images)
-                                .Include(p => p.Category)
-                                .Where(p => p.Enabled);
+            var client = _httpClientFactory.CreateClient("DataApi");
+
+            var productResponse = await client.GetAsync("product");
+            var products = new List<ProductEntity>();
+            if (productResponse.IsSuccessStatusCode)
+            {
+                var stream = await productResponse.Content.ReadAsStreamAsync();
+                products = await JsonSerializer.DeserializeAsync<List<ProductEntity>>(stream, _jsonOptions);
+            }
+
+            var categoryResponse = await client.GetAsync("category");
+            var categories = new List<CategoryEntity>();
+            if (categoryResponse.IsSuccessStatusCode)
+            {
+                var stream = await categoryResponse.Content.ReadAsStreamAsync();
+                categories = await JsonSerializer.DeserializeAsync<List<CategoryEntity>>(stream, _jsonOptions);
+            }
+
+            var query = products!.AsQueryable();
 
             if (!string.IsNullOrEmpty(category) && category != "all")
             {
-                query = query.Where(p => p.Category.Name == category);
+                query = query.Where(p => p.Category != null && p.Category.Name == category);
             }
 
             switch (sort)
             {
-                case "newest":
-                    query = query.OrderByDescending(p => p.CreatedAt);
-                    break;
-                case "price_asc":
-                    query = query.OrderBy(p => p.Price);
-                    break;
-                case "price_desc":
-                    query = query.OrderByDescending(p => p.Price);
-                    break;
-                default:
-                    query = query.OrderByDescending(p => p.CreatedAt);
-                    break;
+                case "newest": query = query.OrderByDescending(p => p.CreatedAt); break;
+                case "price_asc": query = query.OrderBy(p => p.Price); break;
+                case "price_desc": query = query.OrderByDescending(p => p.Price); break;
+                default: query = query.OrderByDescending(p => p.CreatedAt); break;
             }
 
-            ViewBag.Categories = _categoryRepository.GetAll().OrderBy(c => c.Name).ToList();
+            ViewBag.Categories = categories;
             ViewBag.CurrentCategory = category;
 
             return View(query.ToList());
         }
 
-        public IActionResult ProductDetail(int id)
+        public async Task<IActionResult> ProductDetail(int id)
         {
-            var product = _productRepository.GetAll()
-                .Include(p => p.Category)
-                .Include(p => p.Images)
-                .Include(p => p.Comments)
-                .FirstOrDefault(p => p.Id == id);
+            var client = _httpClientFactory.CreateClient("DataApi");
+            var response = await client.GetAsync($"product/{id}");
 
-            if (product == null) return NotFound();
+            if (response.IsSuccessStatusCode)
+            {
+                var stream = await response.Content.ReadAsStreamAsync();
+                var product = await JsonSerializer.DeserializeAsync<ProductEntity>(stream, _jsonOptions);
+                return View(product);
+            }
 
-            return View(product);
+            return NotFound();
         }
 
-        public IActionResult AboutUs()
-        {
-            return View();
-        }
-
-        public IActionResult Contact()
-        {
-            return View();
-        }
+        public IActionResult AboutUs() => View();
+        public IActionResult Contact() => View();
     }
 }

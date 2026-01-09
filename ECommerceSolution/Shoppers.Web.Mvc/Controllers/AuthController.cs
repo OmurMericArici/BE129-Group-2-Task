@@ -1,61 +1,20 @@
-﻿using Microsoft.AspNetCore.Authentication;
-using Microsoft.AspNetCore.Authentication.Cookies;
-using Microsoft.AspNetCore.Mvc;
-using Shoppers.Data.Entities;
-using Shoppers.Data.Repositories;
+﻿using Microsoft.AspNetCore.Mvc;
 using Shoppers.Web.Mvc.Models;
+using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using System.Text;
+using System.Text.Json;
+using Shoppers.Data.Entities;
 
 namespace Shoppers.Web.Mvc.Controllers
 {
     public class AuthController : Controller
     {
-        private readonly IRepository<UserEntity> _userRepository;
+        private readonly IHttpClientFactory _httpClientFactory;
 
-        public AuthController(IRepository<UserEntity> userRepository)
+        public AuthController(IHttpClientFactory httpClientFactory)
         {
-            _userRepository = userRepository;
-        }
-
-        [HttpGet]
-        public IActionResult Register()
-        {
-            if (User.Identity!.IsAuthenticated)
-            {
-                return RedirectToAction("Index", "Home");
-            }
-            return View();
-        }
-
-        [HttpPost]
-        public IActionResult Register(RegisterViewModel model)
-        {
-            if (!ModelState.IsValid)
-            {
-                return View(model);
-            }
-
-            if (_userRepository.Any(u => u.Email == model.Email))
-            {
-                ModelState.AddModelError("Email", "Bu email adresi zaten kullanımda.");
-                return View(model);
-            }
-
-            var newUser = new UserEntity
-            {
-                FirstName = model.FirstName,
-                LastName = model.LastName,
-                Email = model.Email,
-                Password = model.Password,
-                RoleId = 1,
-                CreatedAt = DateTime.Now,
-                Enabled = true
-            };
-
-            _userRepository.Add(newUser);
-
-            ViewBag.SuccessMessage = "Kayıt başarılı! Lütfen giriş yapınız.";
-            return RedirectToAction("Login");
+            _httpClientFactory = httpClientFactory;
         }
 
         [HttpGet]
@@ -71,56 +30,91 @@ namespace Shoppers.Web.Mvc.Controllers
         [HttpPost]
         public async Task<IActionResult> Login(LoginViewModel model)
         {
-            if (!ModelState.IsValid)
+            if (!ModelState.IsValid) return View(model);
+
+            var client = _httpClientFactory.CreateClient("DataApi");
+            var jsonContent = new StringContent(JsonSerializer.Serialize(model), Encoding.UTF8, "application/json");
+
+            var response = await client.PostAsync("auth/login", jsonContent);
+
+            if (response.IsSuccessStatusCode)
             {
-                return View(model);
+                var responseStream = await response.Content.ReadAsStreamAsync();
+                var jsonOptions = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+                var result = await JsonSerializer.DeserializeAsync<JsonElement>(responseStream, jsonOptions);
+
+                if (result.TryGetProperty("Token", out var tokenProperty) || result.TryGetProperty("token", out tokenProperty))
+                {
+                    var token = tokenProperty.GetString();
+
+                    var handler = new JwtSecurityTokenHandler();
+                    var jwtToken = handler.ReadJwtToken(token);
+                    var roleClaim = jwtToken.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value;
+
+                    if (roleClaim == "Admin")
+                    {
+                        ModelState.AddModelError("", "Yönetici hesabıyla buradan giriş yapamazsınız.");
+                        return View(model);
+                    }
+
+                    Response.Cookies.Append("ShoppersToken", token!, new CookieOptions
+                    {
+                        HttpOnly = true,
+                        Expires = DateTime.Now.AddDays(7),
+                        Secure = true,
+                        SameSite = SameSiteMode.Strict
+                    });
+
+                    return RedirectToAction("Index", "Home");
+                }
             }
 
-            var user = _userRepository.Get(u => u.Email == model.Email && u.Password == model.Password);
-
-            if (user == null)
-            {
-                ModelState.AddModelError("", "Email veya şifre hatalı.");
-                return View(model);
-            }
-
-            if (!user.Enabled)
-            {
-                ModelState.AddModelError("", "Hesabınız pasif durumdadır.");
-                return View(model);
-            }
-
-            var claims = new List<Claim>
-            {
-                new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
-                new Claim(ClaimTypes.Name, user.Email),
-                new Claim("FullName", $"{user.FirstName} {user.LastName}"),
-                new Claim(ClaimTypes.Role, user.RoleId == 3 ? "Admin" : (user.RoleId == 2 ? "Seller" : "Buyer"))
-            };
-
-            var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
-            var authProperties = new AuthenticationProperties
-            {
-                IsPersistent = true
-            };
-
-            await HttpContext.SignInAsync(
-                CookieAuthenticationDefaults.AuthenticationScheme,
-                new ClaimsPrincipal(claimsIdentity),
-                authProperties);
-
-            return RedirectToAction("Index", "Home");
+            ModelState.AddModelError("", "Email veya şifre hatalı.");
+            return View(model);
         }
 
-        public async Task<IActionResult> Logout()
+        public IActionResult Logout()
         {
-            await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+            Response.Cookies.Delete("ShoppersToken");
             return RedirectToAction("Login");
         }
 
-        public IActionResult ForgotPassword()
+        [HttpGet]
+        public IActionResult Register()
         {
             return View();
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> Register(RegisterViewModel model)
+        {
+            if (!ModelState.IsValid) return View(model);
+
+            var userEntity = new UserEntity
+            {
+                FirstName = model.FirstName,
+                LastName = model.LastName,
+                Email = model.Email,
+                Password = model.Password,
+                RoleId = 1,
+                Enabled = true,
+                CreatedAt = DateTime.Now
+            };
+
+            var client = _httpClientFactory.CreateClient("DataApi");
+            var jsonContent = new StringContent(JsonSerializer.Serialize(userEntity), Encoding.UTF8, "application/json");
+
+            var response = await client.PostAsync("auth/register", jsonContent);
+
+            if (response.IsSuccessStatusCode)
+            {
+                ViewBag.SuccessMessage = "Kayıt başarılı! Lütfen giriş yapınız.";
+                return View("Login");
+            }
+
+            var errorMsg = await response.Content.ReadAsStringAsync();
+            ModelState.AddModelError("", $"Kayıt başarısız: {errorMsg}");
+            return View(model);
         }
     }
 }

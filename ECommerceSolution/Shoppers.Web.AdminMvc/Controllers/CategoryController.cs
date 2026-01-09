@@ -1,25 +1,45 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Shoppers.Data.Entities;
-using Shoppers.Data.Repositories;
 using Shoppers.Web.AdminMvc.Models;
+using System.Net.Http.Headers;
+using System.Text;
+using System.Text.Json;
 
 namespace Shoppers.Web.AdminMvc.Controllers
 {
     [Authorize(Roles = "Admin")]
     public class CategoryController : Controller
     {
-        private readonly IRepository<CategoryEntity> _categoryRepository;
+        private readonly IHttpClientFactory _httpClientFactory;
+        private readonly JsonSerializerOptions _jsonOptions;
 
-        public CategoryController(IRepository<CategoryEntity> categoryRepository)
+        public CategoryController(IHttpClientFactory httpClientFactory)
         {
-            _categoryRepository = categoryRepository;
+            _httpClientFactory = httpClientFactory;
+            _jsonOptions = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
         }
 
-        public IActionResult List()
+        private void AddAuthHeader(HttpClient client)
         {
-            var categories = _categoryRepository.GetAll().ToList();
-            return View(categories);
+            var token = Request.Cookies["ShoppersAdminToken"];
+            if (!string.IsNullOrEmpty(token))
+            {
+                client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            }
+        }
+
+        public async Task<IActionResult> List()
+        {
+            var client = _httpClientFactory.CreateClient("DataApi");
+            var response = await client.GetAsync("category");
+
+            if (response.IsSuccessStatusCode)
+            {
+                var categories = await JsonSerializer.DeserializeAsync<List<CategoryEntity>>(await response.Content.ReadAsStreamAsync(), _jsonOptions);
+                return View(categories);
+            }
+            return View(new List<CategoryEntity>());
         }
 
         [HttpGet]
@@ -29,76 +49,101 @@ namespace Shoppers.Web.AdminMvc.Controllers
         }
 
         [HttpPost]
-        public IActionResult Create(CategoryCreateViewModel model)
+        public async Task<IActionResult> Create(CategoryCreateViewModel model)
         {
-            if (!ModelState.IsValid)
-            {
-                return View(model);
-            }
+            if (!ModelState.IsValid) return View(model);
 
-            var entity = new CategoryEntity
+            var category = new CategoryEntity
             {
                 Name = model.Name,
                 Color = model.Color,
-                IconCssClass = model.IconCssClass,
-                CreatedAt = DateTime.Now
+                IconCssClass = model.IconCssClass
             };
 
-            _categoryRepository.Add(entity);
+            var client = _httpClientFactory.CreateClient("DataApi");
+            AddAuthHeader(client);
 
-            return RedirectToAction("List");
+            var jsonContent = new StringContent(JsonSerializer.Serialize(category), Encoding.UTF8, "application/json");
+            var response = await client.PostAsync("category", jsonContent);
+
+            if (response.IsSuccessStatusCode)
+            {
+                return RedirectToAction("List");
+            }
+
+            ModelState.AddModelError("", "Error creating category.");
+            return View(model);
         }
 
         [HttpGet]
-        public IActionResult Edit(int id)
+        public async Task<IActionResult> Edit(int id)
         {
-            var entity = _categoryRepository.GetById(id);
-            if (entity == null) return NotFound();
+            var client = _httpClientFactory.CreateClient("DataApi");
+            var response = await client.GetAsync($"category/{id}");
 
-            var model = new CategoryEditViewModel
+            if (response.IsSuccessStatusCode)
             {
-                Id = entity.Id,
-                Name = entity.Name,
-                Color = entity.Color,
-                IconCssClass = entity.IconCssClass
+                var category = await JsonSerializer.DeserializeAsync<CategoryEntity>(await response.Content.ReadAsStreamAsync(), _jsonOptions);
+                var model = new CategoryEditViewModel
+                {
+                    Id = category!.Id,
+                    Name = category.Name,
+                    Color = category.Color,
+                    IconCssClass = category.IconCssClass
+                };
+                return View(model);
+            }
+            return NotFound();
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> Edit(CategoryEditViewModel model)
+        {
+            if (!ModelState.IsValid) return View(model);
+
+            var category = new CategoryEntity
+            {
+                Id = model.Id,
+                Name = model.Name,
+                Color = model.Color,
+                IconCssClass = model.IconCssClass
             };
+
+            var client = _httpClientFactory.CreateClient("DataApi");
+            AddAuthHeader(client);
+
+            var jsonContent = new StringContent(JsonSerializer.Serialize(category), Encoding.UTF8, "application/json");
+            var response = await client.PutAsync("category", jsonContent);
+
+            if (response.IsSuccessStatusCode)
+            {
+                return RedirectToAction("List");
+            }
 
             return View(model);
         }
 
-        [HttpPost]
-        public IActionResult Edit(CategoryEditViewModel model)
-        {
-            if (!ModelState.IsValid)
-            {
-                return View(model);
-            }
-
-            var entity = _categoryRepository.GetById(model.Id);
-            if (entity == null) return NotFound();
-
-            entity.Name = model.Name;
-            entity.Color = model.Color;
-            entity.IconCssClass = model.IconCssClass;
-
-            _categoryRepository.Update(entity);
-
-            return RedirectToAction("List");
-        }
-
         [HttpGet]
-        public IActionResult Delete(int id)
+        public async Task<IActionResult> Delete(int id)
         {
-            var entity = _categoryRepository.GetById(id);
-            if (entity == null) return NotFound();
+            var client = _httpClientFactory.CreateClient("DataApi");
+            var response = await client.GetAsync($"category/{id}");
 
-            return View(entity);
+            if (response.IsSuccessStatusCode)
+            {
+                var category = await JsonSerializer.DeserializeAsync<CategoryEntity>(await response.Content.ReadAsStreamAsync(), _jsonOptions);
+                return View(category);
+            }
+            return NotFound();
         }
 
         [HttpPost]
-        public IActionResult DeleteConfirmed(int id)
+        public async Task<IActionResult> DeleteConfirmed(int id)
         {
-            _categoryRepository.Delete(id);
+            var client = _httpClientFactory.CreateClient("DataApi");
+            AddAuthHeader(client);
+
+            await client.DeleteAsync($"category/{id}");
             return RedirectToAction("List");
         }
     }
