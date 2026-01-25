@@ -1,71 +1,51 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using Shoppers.Data.Entities;
-using System.Text.Json;
+﻿using App.Services.Abstract;
+using Microsoft.AspNetCore.Mvc;
 
 namespace Shoppers.Web.Mvc.Controllers
 {
     public class HomeController : Controller
     {
-        private readonly IHttpClientFactory _httpClientFactory;
-        private readonly JsonSerializerOptions _jsonOptions;
+        private readonly IProductService _productService;
+        private readonly ICategoryService _categoryService;
 
-        public HomeController(IHttpClientFactory httpClientFactory)
+        public HomeController(IProductService productService, ICategoryService categoryService)
         {
-            _httpClientFactory = httpClientFactory;
-            _jsonOptions = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+            _productService = productService;
+            _categoryService = categoryService;
         }
 
         public async Task<IActionResult> Index()
         {
-            var client = _httpClientFactory.CreateClient("DataApi");
-
-            var response = await client.GetAsync("product");
-
-            if (response.IsSuccessStatusCode)
+            var result = await _productService.GetAllAsync();
+            if (result.IsSuccess)
             {
-                var stream = await response.Content.ReadAsStreamAsync();
-                var products = await JsonSerializer.DeserializeAsync<List<ProductEntity>>(stream, _jsonOptions);
-
-                var featured = products?.Take(6).ToList();
+                var featured = result.Value.Take(6).ToList();
                 return View(featured);
             }
-
-            return View(new List<ProductEntity>());
+            return View(new List<App.Models.DTO.ProductDto>());
         }
 
         public async Task<IActionResult> Listing(string category, string sort)
         {
-            var client = _httpClientFactory.CreateClient("DataApi");
+            var productResult = await _productService.GetAllAsync();
+            var products = productResult.IsSuccess ? productResult.Value : new List<App.Models.DTO.ProductDto>();
 
-            var productResponse = await client.GetAsync("product");
-            var products = new List<ProductEntity>();
-            if (productResponse.IsSuccessStatusCode)
-            {
-                var stream = await productResponse.Content.ReadAsStreamAsync();
-                products = await JsonSerializer.DeserializeAsync<List<ProductEntity>>(stream, _jsonOptions);
-            }
+            var categoryResult = await _categoryService.GetAllAsync();
+            var categories = categoryResult.IsSuccess ? categoryResult.Value : new List<App.Models.DTO.CategoryDto>();
 
-            var categoryResponse = await client.GetAsync("category");
-            var categories = new List<CategoryEntity>();
-            if (categoryResponse.IsSuccessStatusCode)
-            {
-                var stream = await categoryResponse.Content.ReadAsStreamAsync();
-                categories = await JsonSerializer.DeserializeAsync<List<CategoryEntity>>(stream, _jsonOptions);
-            }
-
-            var query = products!.AsQueryable();
+            var query = products.AsQueryable();
 
             if (!string.IsNullOrEmpty(category) && category != "all")
             {
-                query = query.Where(p => p.Category != null && p.Category.Name == category);
+                query = query.Where(p => p.CategoryName == category);
             }
 
             switch (sort)
             {
-                case "newest": query = query.OrderByDescending(p => p.CreatedAt); break;
+                case "newest": query = query.OrderByDescending(p => p.Id); break;
                 case "price_asc": query = query.OrderBy(p => p.Price); break;
                 case "price_desc": query = query.OrderByDescending(p => p.Price); break;
-                default: query = query.OrderByDescending(p => p.CreatedAt); break;
+                default: query = query.OrderByDescending(p => p.Id); break;
             }
 
             ViewBag.Categories = categories;
@@ -76,16 +56,11 @@ namespace Shoppers.Web.Mvc.Controllers
 
         public async Task<IActionResult> ProductDetail(int id)
         {
-            var client = _httpClientFactory.CreateClient("DataApi");
-            var response = await client.GetAsync($"product/{id}");
-
-            if (response.IsSuccessStatusCode)
+            var result = await _productService.GetByIdAsync(id);
+            if (result.IsSuccess)
             {
-                var stream = await response.Content.ReadAsStreamAsync();
-                var product = await JsonSerializer.DeserializeAsync<ProductEntity>(stream, _jsonOptions);
-                return View(product);
+                return View(result.Value);
             }
-
             return NotFound();
         }
 

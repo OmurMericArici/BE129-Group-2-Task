@@ -1,3 +1,5 @@
+using App.Api.Data.Services.Abstract;
+using App.Api.Data.Services.Concrete;
 using Shoppers.Data;
 using Shoppers.Data.Repositories;
 using Microsoft.EntityFrameworkCore;
@@ -21,6 +23,14 @@ builder.Services.AddDbContext<ShoppersDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 builder.Services.AddScoped(typeof(IRepository<>), typeof(DataRepository<>));
+
+builder.Services.AddScoped<IAuthApiService, AuthApiService>();
+builder.Services.AddScoped<ICategoryApiService, CategoryApiService>();
+builder.Services.AddScoped<IProductApiService, ProductApiService>();
+builder.Services.AddScoped<ICartApiService, CartApiService>();
+builder.Services.AddScoped<IOrderApiService, OrderApiService>();
+builder.Services.AddScoped<IUserApiService, UserApiService>();
+builder.Services.AddScoped<ICommentApiService, CommentApiService>();
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>

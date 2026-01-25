@@ -1,4 +1,4 @@
-﻿@model List<Shoppers.Data.Entities.ProductEntity>
+﻿@model List<App.Models.DTO.ProductDto>
 
 @{
     ViewData["Title"] = "Product List";
@@ -36,7 +36,7 @@
                                 <td>@item.Name</td>
                                 <td>@item.Price.ToString("C")</td>
                                 <td>@item.StockAmount</td>
-                                <td>@(item.Category?.Name ?? "-")</td>
+                                <td>@(item.CategoryName ?? "-")</td>
                                 <td>
                                     <form asp-action="Delete" method="post" onsubmit="return confirm('Are you sure you want to delete this product?');">
                                         <input type="hidden" name="id" value="@item.Id" />

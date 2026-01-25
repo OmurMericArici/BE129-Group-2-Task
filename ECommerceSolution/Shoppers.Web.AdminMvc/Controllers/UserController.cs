@@ -1,68 +1,41 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿using App.Models.DTO;
+using App.Services.Abstract;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Shoppers.Data.Entities;
-using System.Net.Http.Headers;
-using System.Text.Json;
 
 namespace Shoppers.Web.AdminMvc.Controllers
 {
     [Authorize(Roles = "Admin")]
     public class UserController : Controller
     {
-        private readonly IHttpClientFactory _httpClientFactory;
-        private readonly JsonSerializerOptions _jsonOptions;
+        private readonly IUserService _service;
 
-        public UserController(IHttpClientFactory httpClientFactory)
+        public UserController(IUserService service)
         {
-            _httpClientFactory = httpClientFactory;
-            _jsonOptions = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+            _service = service;
         }
 
-        private void AddAuthHeader(HttpClient client)
-        {
-            var token = Request.Cookies["ShoppersAdminToken"];
-            if (!string.IsNullOrEmpty(token))
-            {
-                client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
-            }
-        }
+        private string GetJwt() => Request.Cookies["ShoppersAdminToken"]!;
 
         public async Task<IActionResult> List()
         {
-            var client = _httpClientFactory.CreateClient("DataApi");
-            AddAuthHeader(client);
-
-            var response = await client.GetAsync("user");
-            if (response.IsSuccessStatusCode)
-            {
-                var users = await JsonSerializer.DeserializeAsync<List<UserEntity>>(await response.Content.ReadAsStreamAsync(), _jsonOptions);
-                return View(users);
-            }
-            return View(new List<UserEntity>());
+            var result = await _service.GetAllAsync(GetJwt());
+            if (result.IsSuccess) return View(result.Value);
+            return View(new List<UserDto>());
         }
 
         [HttpGet]
         public async Task<IActionResult> Approve(int id)
         {
-            var client = _httpClientFactory.CreateClient("DataApi");
-            AddAuthHeader(client);
-
-            var response = await client.GetAsync($"user/{id}");
-            if (response.IsSuccessStatusCode)
-            {
-                var user = await JsonSerializer.DeserializeAsync<UserEntity>(await response.Content.ReadAsStreamAsync(), _jsonOptions);
-                return View(user);
-            }
+            var result = await _service.GetByIdAsync(GetJwt(), id);
+            if (result.IsSuccess) return View(result.Value);
             return NotFound();
         }
 
         [HttpPost]
         public async Task<IActionResult> ApproveConfirmed(int id)
         {
-            var client = _httpClientFactory.CreateClient("DataApi");
-            AddAuthHeader(client);
-
-            await client.PostAsync($"user/approve/{id}", null);
+            await _service.ApproveSellerAsync(GetJwt(), id);
             return RedirectToAction(nameof(List));
         }
     }

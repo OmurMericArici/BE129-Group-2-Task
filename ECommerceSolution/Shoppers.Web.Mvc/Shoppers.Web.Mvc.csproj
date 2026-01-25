@@ -18,6 +18,8 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\App.Models.DTO\App.Models.DTO.csproj" />
+    <ProjectReference Include="..\App.Services\App.Services.csproj" />
     <ProjectReference Include="..\Shoppers.Data\Shoppers.Data.csproj" />
   </ItemGroup>
 

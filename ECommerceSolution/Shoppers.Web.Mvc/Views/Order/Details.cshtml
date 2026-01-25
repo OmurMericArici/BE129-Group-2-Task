@@ -1,4 +1,4 @@
-﻿@model Shoppers.Data.Entities.OrderEntity
+﻿@model App.Models.DTO.OrderDto
 @{
     ViewData["Title"] = "Order Received";
 }
@@ -26,11 +26,11 @@
                     <p class="text-left"><strong>Address:</strong> @Model.Address</p>
                     <hr />
                     <ul class="list-group list-group-flush text-left">
-                        @foreach (var item in Model.OrderItems)
+                        @foreach (var item in Model.Items)
                         {
                             <li class="list-group-item d-flex justify-content-between align-items-center">
                                 <div>
-                                    @item.Product.Name
+                                    @item.ProductName
                                     <span class="badge badge-primary badge-pill">x @item.Quantity</span>
                                 </div>
                                 <span>@item.UnitPrice.ToString("C")</span>

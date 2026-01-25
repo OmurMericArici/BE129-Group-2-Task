@@ -1,19 +1,19 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using App.Models.DTO;
+using App.Services.Abstract;
+using Microsoft.AspNetCore.Mvc;
 using Shoppers.Web.AdminMvc.Models;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
-using System.Text;
-using System.Text.Json;
 
 namespace Shoppers.Web.AdminMvc.Controllers
 {
     public class AuthController : Controller
     {
-        private readonly IHttpClientFactory _httpClientFactory;
+        private readonly IAuthService _authService;
 
-        public AuthController(IHttpClientFactory httpClientFactory)
+        public AuthController(IAuthService authService)
         {
-            _httpClientFactory = httpClientFactory;
+            _authService = authService;
         }
 
         [HttpGet]
@@ -27,40 +27,36 @@ namespace Shoppers.Web.AdminMvc.Controllers
         {
             if (!ModelState.IsValid) return View(model);
 
-            var client = _httpClientFactory.CreateClient("DataApi");
-            var jsonContent = new StringContent(JsonSerializer.Serialize(model), Encoding.UTF8, "application/json");
-
-            var response = await client.PostAsync("auth/login", jsonContent);
-
-            if (response.IsSuccessStatusCode)
+            var dto = new LoginRequestDto
             {
-                var responseStream = await response.Content.ReadAsStreamAsync();
-                var jsonOptions = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
-                var result = await JsonSerializer.DeserializeAsync<JsonElement>(responseStream, jsonOptions);
+                Email = model.Email,
+                Password = model.Password
+            };
 
-                if (result.TryGetProperty("Token", out var tokenProperty) || result.TryGetProperty("token", out tokenProperty))
+            var result = await _authService.LoginAsync(dto);
+
+            if (result.IsSuccess)
+            {
+                var token = result.Value.Token;
+                var handler = new JwtSecurityTokenHandler();
+                var jwtToken = handler.ReadJwtToken(token);
+                var roleClaim = jwtToken.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value;
+
+                if (roleClaim != "Admin")
                 {
-                    var token = tokenProperty.GetString();
-                    var handler = new JwtSecurityTokenHandler();
-                    var jwtToken = handler.ReadJwtToken(token);
-                    var roleClaim = jwtToken.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value;
-
-                    if (roleClaim != "Admin")
-                    {
-                        ModelState.AddModelError("", "Bu alana girmek için yetkiniz yok.");
-                        return View(model);
-                    }
-
-                    Response.Cookies.Append("ShoppersAdminToken", token!, new CookieOptions
-                    {
-                        HttpOnly = true,
-                        Expires = DateTime.Now.AddDays(1),
-                        Secure = true,
-                        SameSite = SameSiteMode.Strict
-                    });
-
-                    return RedirectToAction("Index", "Home");
+                    ModelState.AddModelError("", "Bu alana girmek için yetkiniz yok.");
+                    return View(model);
                 }
+
+                Response.Cookies.Append("ShoppersAdminToken", token, new CookieOptions
+                {
+                    HttpOnly = true,
+                    Expires = DateTime.Now.AddDays(1),
+                    Secure = true,
+                    SameSite = SameSiteMode.Strict
+                });
+
+                return RedirectToAction("Index", "Home");
             }
 
             ModelState.AddModelError("", "Giriş başarısız veya yetkisiz.");

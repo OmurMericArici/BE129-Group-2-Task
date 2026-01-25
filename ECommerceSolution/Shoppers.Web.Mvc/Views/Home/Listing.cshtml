@@ -1,8 +1,8 @@
-﻿@model List<Shoppers.Data.Entities.ProductEntity>
+﻿@model List<App.Models.DTO.ProductDto>
 
 @{
     ViewData["Title"] = "Shop";
-    var categories = ViewBag.Categories as List<Shoppers.Data.Entities.CategoryEntity>;
+    var categories = ViewBag.Categories as List<App.Models.DTO.CategoryDto>;
     var currentCategory = ViewBag.CurrentCategory as string;
 }
 
@@ -51,9 +51,9 @@
                                 <div class="block-4 text-center border">
                                     <figure class="block-4-image">
                                         <a asp-controller="Home" asp-action="ProductDetail" asp-route-id="@item.Id">
-                                            @if (item.Images != null && item.Images.Any())
+                                            @if (item.ImageUrls != null && item.ImageUrls.Any())
                                             {
-                                                <img src="@item.Images.First().Url" alt="@item.Name" class="img-fluid" style="height:250px; object-fit:cover;">
+                                                <img src="@item.ImageUrls.First()" alt="@item.Name" class="img-fluid" style="height:250px; object-fit:cover;">
                                             }
                                             else
                                             {
@@ -63,7 +63,7 @@
                                     </figure>
                                     <div class="block-4-text p-4">
                                         <h3><a asp-controller="Home" asp-action="ProductDetail" asp-route-id="@item.Id">@item.Name</a></h3>
-                                        <p class="mb-0">@item.Category?.Name</p>
+                                        <p class="mb-0">@item.CategoryName</p>
                                         <p class="text-primary font-weight-bold">@item.Price.ToString("C")</p>
                                     </div>
                                 </div>

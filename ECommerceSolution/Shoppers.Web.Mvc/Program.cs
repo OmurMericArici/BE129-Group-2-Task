@@ -1,4 +1,6 @@
-﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
+﻿using App.Services.Abstract;
+using App.Services.Concrete;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 
@@ -15,6 +17,15 @@ builder.Services.AddHttpClient("FileApi", client =>
 {
     client.BaseAddress = new Uri(builder.Configuration["ApiSettings:FileApiUrl"]!);
 });
+
+builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<ICategoryService, CategoryService>();
+builder.Services.AddScoped<IProductService, ProductService>();
+builder.Services.AddScoped<ICartService, CartService>();
+builder.Services.AddScoped<IOrderService, OrderService>();
+builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<ICommentService, CommentService>();
+builder.Services.AddScoped<IFileService, FileService>();
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>

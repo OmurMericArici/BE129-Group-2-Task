@@ -1,4 +1,4 @@
-﻿@model List<Shoppers.Data.Entities.ProductEntity>
+﻿@model List<App.Models.DTO.ProductDto>
 
 @{
     ViewData["Title"] = "My Products";
@@ -34,9 +34,9 @@
                         <div class="block-4 text-center border">
                             <figure class="block-4-image">
                                 <a asp-controller="Product" asp-action="Edit" asp-route-id="@item.Id">
-                                    @if (item.Images != null && item.Images.Any())
+                                    @if (item.ImageUrls != null && item.ImageUrls.Any())
                                     {
-                                        <img src="@item.Images.First().Url" alt="@item.Name" class="img-fluid" style="height:250px; object-fit:cover;">
+                                        <img src="@item.ImageUrls.First()" alt="@item.Name" class="img-fluid" style="height:250px; object-fit:cover;">
                                     }
                                     else
                                     {

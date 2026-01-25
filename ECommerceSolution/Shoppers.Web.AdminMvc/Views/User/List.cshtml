@@ -1,4 +1,4 @@
-﻿@model List<Shoppers.Data.Entities.UserEntity>
+﻿@model List<App.Models.DTO.UserDto>
 
 @{
     ViewData["Title"] = "User List";
@@ -35,25 +35,22 @@
                                 <td>@user.FirstName @user.LastName</td>
                                 <td>@user.Email</td>
                                 <td>
-                                    @if (user.RoleId == 3)
+                                    @if (user.Role == "Admin")
                                     {
                                         <span class="badge badge-danger">Admin</span>
                                     }
-                                    else if (user.RoleId == 2)
+                                    else if (user.Role == "Seller")
                                     {
-
                                         <span class="badge badge-primary">Seller</span>
                                     }
                                     else
                                     {
-
                                         <span class="badge badge-secondary">Buyer</span>
                                     }
                                 </td>
                                 <td>@user.CreatedAt.ToShortDateString()</td>
                                 <td>
-                                    <!-- Sadece Buyer ise Satıcı yapma butonu çıksın -->
-                                    @if (user.RoleId == 1)
+                                    @if (user.Role == "Buyer")
                                     {
                                         <a asp-action="Approve" asp-route-id="@user.Id" class="btn btn-success btn-sm">
                                             <i class="fas fa-check"></i> Make Seller

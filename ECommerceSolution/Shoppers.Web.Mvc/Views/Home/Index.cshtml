@@ -1,10 +1,9 @@
-﻿@model List<Shoppers.Data.Entities.ProductEntity>
+﻿@model List<App.Models.DTO.ProductDto>
 
 @{
     ViewData["Title"] = "Home";
 }
 
-<!-- Hero Section -->
 <div class="site-blocks-cover" style="background-image: url('/images/hero_1.jpg');" data-aos="fade">
     <div class="container">
         <div class="row align-items-start align-items-md-center justify-content-end">
@@ -21,7 +20,6 @@
     </div>
 </div>
 
-<!-- Collections Section -->
 <div class="site-section site-blocks-2">
     <div class="container">
         <div class="row">
@@ -64,7 +62,6 @@
     </div>
 </div>
 
-<!-- Featured Products Section -->
 <div class="site-section block-3 site-blocks-2 bg-light">
     <div class="container">
         <div class="row justify-content-center">
@@ -85,9 +82,9 @@
                                 <div class="block-4 text-center">
                                     <figure class="block-4-image">
                                         <a asp-controller="Home" asp-action="ProductDetail" asp-route-id="@item.Id">
-                                            @if (item.Images != null && item.Images.Any())
+                                            @if (item.ImageUrls != null && item.ImageUrls.Any())
                                             {
-                                                <img src="@item.Images.First().Url" alt="@item.Name" class="img-fluid" style="height:200px; object-fit:cover;">
+                                                <img src="@item.ImageUrls.First()" alt="@item.Name" class="img-fluid" style="height:200px; object-fit:cover;">
                                             }
                                             else
                                             {
@@ -97,7 +94,7 @@
                                     </figure>
                                     <div class="block-4-text p-4">
                                         <h3><a asp-controller="Home" asp-action="ProductDetail" asp-route-id="@item.Id">@item.Name</a></h3>
-                                        <p class="mb-0">@item.Category?.Name</p>
+                                        <p class="mb-0">@item.CategoryName</p>
                                         <p class="text-primary font-weight-bold">@item.Price.ToString("C")</p>
                                     </div>
                                 </div>
@@ -120,7 +117,6 @@
     </div>
 </div>
 
-<!-- Big Sale Section -->
 <div class="site-section block-8">
     <div class="container">
         <div class="row justify-content-center mb-5">

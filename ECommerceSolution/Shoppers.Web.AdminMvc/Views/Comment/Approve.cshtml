@@ -1,4 +1,4 @@
-﻿@model Shoppers.Data.Entities.ProductCommentEntity
+﻿@model App.Models.DTO.CommentDto
 
 @{
     ViewData["Title"] = "Approve Comment";
@@ -19,12 +19,12 @@
 
                 <div class="mb-3">
                     <label class="font-weight-bold">Product</label>
-                    <div class="form-control bg-light">@Model.Product?.Name</div>
+                    <div class="form-control bg-light">@Model.ProductName</div>
                 </div>
 
                 <div class="mb-3">
                     <label class="font-weight-bold">User</label>
-                    <div class="form-control bg-light">@Model.User?.FirstName @Model.User?.LastName</div>
+                    <div class="form-control bg-light">@Model.UserName</div>
                 </div>
 
                 <div class="mb-3">

@@ -1,54 +1,53 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿using App.Api.Data.Services.Abstract;
+using App.Models.DTO;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using Shoppers.Data.Entities;
-using Shoppers.Data.Repositories;
+using System.Security.Claims;
 
 namespace App.Api.Data.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize(Roles = "Admin")]
     public class CommentController : ControllerBase
     {
-        private readonly IRepository<ProductCommentEntity> _commentRepository;
+        private readonly ICommentApiService _service;
 
-        public CommentController(IRepository<ProductCommentEntity> commentRepository)
+        public CommentController(ICommentApiService service)
         {
-            _commentRepository = commentRepository;
+            _service = service;
         }
 
         [HttpGet]
+        [Authorize(Roles = "Admin")]
         public IActionResult GetAll()
         {
-            var comments = _commentRepository.GetAll()
-                .Include(c => c.Product)
-                .Include(c => c.User)
-                .OrderByDescending(c => c.CreatedAt)
-                .ToList();
-            return Ok(comments);
+            return Ok(_service.GetAll().Value);
         }
 
         [HttpGet("{id}")]
+        [Authorize(Roles = "Admin")]
         public IActionResult GetById(int id)
         {
-            var comment = _commentRepository.GetAll()
-                .Include(c => c.Product)
-                .Include(c => c.User)
-                .FirstOrDefault(c => c.Id == id);
-
-            if (comment == null) return NotFound();
-            return Ok(comment);
+            var result = _service.GetById(id);
+            if (!result.IsSuccess) return NotFound();
+            return Ok(result.Value);
         }
 
         [HttpPost("approve/{id}")]
+        [Authorize(Roles = "Admin")]
         public IActionResult Approve(int id)
         {
-            var comment = _commentRepository.GetById(id);
-            if (comment == null) return NotFound();
+            var result = _service.Approve(id);
+            if (!result.IsSuccess) return NotFound();
+            return Ok();
+        }
 
-            comment.IsConfirmed = true;
-            _commentRepository.Update(comment);
+        [HttpPost]
+        [Authorize(Roles = "Buyer,Seller")]
+        public IActionResult Create(CommentCreateDto model)
+        {
+            var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+            _service.Create(userId, model);
             return Ok();
         }
     }

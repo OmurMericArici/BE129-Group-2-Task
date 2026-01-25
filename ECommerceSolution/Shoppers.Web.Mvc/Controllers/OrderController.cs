@@ -1,55 +1,36 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿using App.Models.DTO;
+using App.Services.Abstract;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Shoppers.Data.Entities;
 using Shoppers.Web.Mvc.Models;
-using System.Net.Http.Headers;
-using System.Text;
-using System.Text.Json;
 
 namespace Shoppers.Web.Mvc.Controllers
 {
     [Authorize]
     public class OrderController : Controller
     {
-        private readonly IHttpClientFactory _httpClientFactory;
-        private readonly JsonSerializerOptions _jsonOptions;
+        private readonly IOrderService _orderService;
+        private readonly ICartService _cartService;
 
-        public OrderController(IHttpClientFactory httpClientFactory)
+        public OrderController(IOrderService orderService, ICartService cartService)
         {
-            _httpClientFactory = httpClientFactory;
-            _jsonOptions = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+            _orderService = orderService;
+            _cartService = cartService;
         }
 
-        private void AddAuthHeader(HttpClient client)
-        {
-            var token = Request.Cookies["ShoppersToken"];
-            if (!string.IsNullOrEmpty(token))
-            {
-                client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
-            }
-        }
+        private string GetJwt() => Request.Cookies["ShoppersToken"]!;
 
         [HttpGet]
         public async Task<IActionResult> Create()
         {
-            var client = _httpClientFactory.CreateClient("DataApi");
-            AddAuthHeader(client);
-
-            var response = await client.GetAsync("cart");
-            if (response.IsSuccessStatusCode)
+            var result = await _cartService.GetCartAsync(GetJwt());
+            if (result.IsSuccess && result.Value.Any())
             {
-                var cartItems = await JsonSerializer.DeserializeAsync<List<CartItemEntity>>(await response.Content.ReadAsStreamAsync(), _jsonOptions);
-
-                if (cartItems == null || !cartItems.Any())
-                {
-                    return RedirectToAction("Edit", "Cart");
-                }
-
+                var cartItems = result.Value;
                 ViewBag.CartItems = cartItems;
-                ViewBag.TotalPrice = cartItems.Sum(c => c.Quantity * c.Product.Price);
+                ViewBag.TotalPrice = cartItems.Sum(c => c.Quantity * c.Price);
                 return View();
             }
-
             return RedirectToAction("Edit", "Cart");
         }
 
@@ -62,17 +43,12 @@ namespace Shoppers.Web.Mvc.Controllers
                 return View(model);
             }
 
-            var client = _httpClientFactory.CreateClient("DataApi");
-            AddAuthHeader(client);
+            var dto = new OrderCreateRequestDto { Address = model.Address };
+            var result = await _orderService.CreateOrderAsync(GetJwt(), dto);
 
-            var jsonContent = new StringContent(JsonSerializer.Serialize(model.Address), Encoding.UTF8, "application/json");
-            var response = await client.PostAsync("order/checkout", jsonContent);
-
-            if (response.IsSuccessStatusCode)
+            if (result.IsSuccess)
             {
-                var result = await JsonSerializer.DeserializeAsync<JsonElement>(await response.Content.ReadAsStreamAsync());
-                var orderId = result.GetProperty("orderId").GetInt32();
-                return RedirectToAction("Details", new { id = orderId });
+                return RedirectToAction("Details", new { id = result.Value.OrderId });
             }
 
             ModelState.AddModelError("", "Order could not be placed.");
@@ -82,30 +58,23 @@ namespace Shoppers.Web.Mvc.Controllers
 
         public async Task<IActionResult> Details(int id)
         {
-            var client = _httpClientFactory.CreateClient("DataApi");
-            AddAuthHeader(client);
-
-            var response = await client.GetAsync("order/myorders");
-            if (response.IsSuccessStatusCode)
+            var result = await _orderService.GetMyOrdersAsync(GetJwt());
+            if (result.IsSuccess)
             {
-                var orders = await JsonSerializer.DeserializeAsync<List<OrderEntity>>(await response.Content.ReadAsStreamAsync(), _jsonOptions);
-                var order = orders?.FirstOrDefault(o => o.Id == id);
+                var order = result.Value.FirstOrDefault(o => o.Id == id);
                 if (order != null) return View(order);
             }
-
             return NotFound();
         }
 
         private async Task LoadCartForView()
         {
-            var client = _httpClientFactory.CreateClient("DataApi");
-            AddAuthHeader(client);
-            var response = await client.GetAsync("cart");
-            if (response.IsSuccessStatusCode)
+            var result = await _cartService.GetCartAsync(GetJwt());
+            if (result.IsSuccess)
             {
-                var cartItems = await JsonSerializer.DeserializeAsync<List<CartItemEntity>>(await response.Content.ReadAsStreamAsync(), _jsonOptions);
+                var cartItems = result.Value;
                 ViewBag.CartItems = cartItems;
-                ViewBag.TotalPrice = cartItems?.Sum(c => c.Quantity * c.Product.Price) ?? 0;
+                ViewBag.TotalPrice = cartItems.Sum(c => c.Quantity * c.Price);
             }
         }
     }

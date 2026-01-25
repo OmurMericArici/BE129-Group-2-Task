@@ -1,8 +1,7 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿using App.Api.Data.Services.Abstract;
+using App.Models.DTO;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using Shoppers.Data.Entities;
-using Shoppers.Data.Repositories;
 using System.Security.Claims;
 
 namespace App.Api.Data.Controllers
@@ -11,23 +10,17 @@ namespace App.Api.Data.Controllers
     [ApiController]
     public class ProductController : ControllerBase
     {
-        private readonly IRepository<ProductEntity> _productRepository;
+        private readonly IProductApiService _service;
 
-        public ProductController(IRepository<ProductEntity> productRepository)
+        public ProductController(IProductApiService service)
         {
-            _productRepository = productRepository;
+            _service = service;
         }
 
         [HttpGet]
         public IActionResult GetAll()
         {
-            var products = _productRepository.GetAll()
-                .Include(p => p.Category)
-                .Include(p => p.Images)
-                .Where(p => p.Enabled)
-                .OrderByDescending(p => p.CreatedAt)
-                .ToList();
-            return Ok(products);
+            return Ok(_service.GetAll().Value);
         }
 
         [HttpGet("seller/{sellerId}")]
@@ -37,77 +30,49 @@ namespace App.Api.Data.Controllers
             var currentUserId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
             if (currentUserId != sellerId) return Forbid();
 
-            var products = _productRepository.GetAll()
-                .Include(p => p.Images)
-                .Where(p => p.SellerId == sellerId && p.Enabled)
-                .OrderByDescending(p => p.CreatedAt)
-                .ToList();
-            return Ok(products);
+            return Ok(_service.GetBySeller(sellerId).Value);
         }
 
         [HttpGet("{id}")]
         public IActionResult Get(int id)
         {
-            var product = _productRepository.GetAll()
-                .Include(p => p.Category)
-                .Include(p => p.Images)
-                .FirstOrDefault(p => p.Id == id);
-
-            if (product == null) return NotFound();
-            return Ok(product);
+            var result = _service.GetById(id);
+            if (!result.IsSuccess) return NotFound();
+            return Ok(result.Value);
         }
 
         [HttpPost]
         [Authorize(Roles = "Seller")]
-        public IActionResult Create(ProductEntity product)
+        public IActionResult Create(ProductCreateDto model)
         {
             var currentUserId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
-
-            product.SellerId = currentUserId;
-            product.CreatedAt = DateTime.Now;
-            product.Enabled = true;
-
-            _productRepository.Add(product);
-            return CreatedAtAction(nameof(Get), new { id = product.Id }, product);
+            _service.Create(currentUserId, model);
+            return Ok();
         }
 
         [HttpPut]
         [Authorize(Roles = "Seller")]
-        public IActionResult Update(ProductEntity product)
+        public IActionResult Update(ProductUpdateDto model)
         {
-            var existing = _productRepository.GetAll().Include(p => p.Images).FirstOrDefault(p => p.Id == product.Id);
-            if (existing == null) return NotFound();
-
             var currentUserId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
-            if (existing.SellerId != currentUserId) return Forbid();
-
-            existing.Name = product.Name;
-            existing.Price = product.Price;
-            existing.StockAmount = product.StockAmount;
-            existing.Details = product.Details;
-            existing.CategoryId = product.CategoryId;
-
-            _productRepository.Update(existing);
-            return Ok(existing);
+            var result = _service.Update(currentUserId, model);
+            if (result.Status == Ardalis.Result.ResultStatus.Forbidden) return Forbid();
+            if (result.Status == Ardalis.Result.ResultStatus.NotFound) return NotFound();
+            return Ok();
         }
 
         [HttpDelete("{id}")]
         [Authorize(Roles = "Seller,Admin")]
         public IActionResult Delete(int id)
         {
-            var product = _productRepository.GetById(id);
-            if (product == null) return NotFound();
-
             var currentUserId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
             var userRole = User.FindFirst(ClaimTypes.Role)!.Value;
 
-            if (userRole == "Seller" && product.SellerId != currentUserId)
-            {
-                return Forbid();
-            }
+            var result = _service.Delete(currentUserId, userRole, id);
 
-            product.Enabled = false;
-            _productRepository.Update(product);
+            if (result.Status == Ardalis.Result.ResultStatus.Forbidden) return Forbid();
+            if (result.Status == Ardalis.Result.ResultStatus.NotFound) return NotFound();
+
             return NoContent();
         }
     }

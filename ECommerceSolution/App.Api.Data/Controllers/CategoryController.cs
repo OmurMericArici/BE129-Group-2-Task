@@ -1,7 +1,7 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿using App.Api.Data.Services.Abstract;
+using App.Models.DTO;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Shoppers.Data.Entities;
-using Shoppers.Data.Repositories;
 
 namespace App.Api.Data.Controllers
 {
@@ -9,60 +9,51 @@ namespace App.Api.Data.Controllers
     [ApiController]
     public class CategoryController : ControllerBase
     {
-        private readonly IRepository<CategoryEntity> _categoryRepository;
+        private readonly ICategoryApiService _service;
 
-        public CategoryController(IRepository<CategoryEntity> categoryRepository)
+        public CategoryController(ICategoryApiService service)
         {
-            _categoryRepository = categoryRepository;
+            _service = service;
         }
 
         [HttpGet]
         public IActionResult GetAll()
         {
-            var categories = _categoryRepository.GetAll().OrderBy(c => c.Name).ToList();
-            return Ok(categories);
+            var result = _service.GetAll();
+            return Ok(result.Value);
         }
 
         [HttpGet("{id}")]
         public IActionResult Get(int id)
         {
-            var category = _categoryRepository.GetById(id);
-            if (category == null) return NotFound();
-            return Ok(category);
+            var result = _service.GetById(id);
+            if (!result.IsSuccess) return NotFound();
+            return Ok(result.Value);
         }
 
         [HttpPost]
         [Authorize(Roles = "Admin")]
-        public IActionResult Create(CategoryEntity category)
+        public IActionResult Create(CategoryCreateDto model)
         {
-            category.CreatedAt = DateTime.Now;
-            _categoryRepository.Add(category);
-            return CreatedAtAction(nameof(Get), new { id = category.Id }, category);
+            _service.Create(model);
+            return Ok();
         }
 
         [HttpPut]
         [Authorize(Roles = "Admin")]
-        public IActionResult Update(CategoryEntity category)
+        public IActionResult Update(CategoryUpdateDto model)
         {
-            var existing = _categoryRepository.GetById(category.Id);
-            if (existing == null) return NotFound();
-
-            existing.Name = category.Name;
-            existing.Color = category.Color;
-            existing.IconCssClass = category.IconCssClass;
-
-            _categoryRepository.Update(existing);
-            return Ok(existing);
+            var result = _service.Update(model);
+            if (!result.IsSuccess) return NotFound();
+            return Ok();
         }
 
         [HttpDelete("{id}")]
         [Authorize(Roles = "Admin")]
         public IActionResult Delete(int id)
         {
-            var existing = _categoryRepository.GetById(id);
-            if (existing == null) return NotFound();
-
-            _categoryRepository.Delete(existing);
+            var result = _service.Delete(id);
+            if (!result.IsSuccess) return NotFound();
             return NoContent();
         }
     }

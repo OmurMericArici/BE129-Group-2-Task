@@ -1,4 +1,4 @@
-﻿@model List<Shoppers.Data.Entities.OrderEntity>
+﻿@model List<App.Models.DTO.OrderDto>
 @{
     ViewData["Title"] = "My Orders";
 }
@@ -26,12 +26,10 @@
                 {
                     @foreach (var order in Model)
                     {
-                        var total = order.OrderItems.Sum(x => x.Quantity * x.UnitPrice);
-
                         <div class="p-4 border rounded mb-4">
                             <h5 class="text-primary">Order #@order.OrderCode</h5>
                             <p class="mb-1"><strong>Date:</strong> @order.CreatedAt.ToShortDateString()</p>
-                            <p class="mb-3"><strong>Total:</strong> @total.ToString("C")</p>
+                            <p class="mb-3"><strong>Total:</strong> @order.TotalPrice.ToString("C")</p>
 
                             <a asp-controller="Order" asp-action="Details" asp-route-id="@order.Id" class="btn btn-outline-primary btn-sm">View Details</a>
                         </div>

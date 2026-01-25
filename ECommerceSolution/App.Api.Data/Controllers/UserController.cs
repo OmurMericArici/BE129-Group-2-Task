@@ -1,8 +1,7 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿using App.Api.Data.Services.Abstract;
+using App.Models.DTO;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using Shoppers.Data.Entities;
-using Shoppers.Data.Repositories;
 using System.Security.Claims;
 
 namespace App.Api.Data.Controllers
@@ -11,11 +10,11 @@ namespace App.Api.Data.Controllers
     [ApiController]
     public class UserController : ControllerBase
     {
-        private readonly IRepository<UserEntity> _userRepository;
+        private readonly IUserApiService _service;
 
-        public UserController(IRepository<UserEntity> userRepository)
+        public UserController(IUserApiService service)
         {
-            _userRepository = userRepository;
+            _service = service;
         }
 
         [HttpGet("me")]
@@ -23,52 +22,44 @@ namespace App.Api.Data.Controllers
         public IActionResult GetMe()
         {
             var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
-            var user = _userRepository.GetAll().Include(u => u.Role).FirstOrDefault(u => u.Id == userId);
-            if (user == null) return NotFound();
-            return Ok(user);
+            var result = _service.GetUser(userId);
+            if (!result.IsSuccess) return NotFound();
+            return Ok(result.Value);
         }
 
         [HttpPut("me")]
         [Authorize]
-        public IActionResult UpdateMe(UserEntity model)
+        public IActionResult UpdateMe(UserUpdateDto model)
         {
             var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
-            var user = _userRepository.GetById(userId);
-            if (user == null) return NotFound();
-
-            user.FirstName = model.FirstName;
-            user.LastName = model.LastName;
-            _userRepository.Update(user);
-            return Ok(user);
+            var result = _service.UpdateUser(userId, model);
+            if (!result.IsSuccess) return NotFound();
+            return Ok(result.Value);
         }
 
         [HttpGet]
         [Authorize(Roles = "Admin")]
         public IActionResult GetAll()
         {
-            var users = _userRepository.GetAll().Include(u => u.Role).OrderByDescending(u => u.CreatedAt).ToList();
-            return Ok(users);
-        }
-
-        [HttpPost("approve/{id}")]
-        [Authorize(Roles = "Admin")]
-        public IActionResult ApproveSeller(int id)
-        {
-            var user = _userRepository.GetById(id);
-            if (user == null) return NotFound();
-
-            user.RoleId = 2;
-            _userRepository.Update(user);
-            return Ok();
+            return Ok(_service.GetAllUsers().Value);
         }
 
         [HttpGet("{id}")]
         [Authorize(Roles = "Admin")]
         public IActionResult GetById(int id)
         {
-            var user = _userRepository.GetAll().Include(u => u.Role).FirstOrDefault(u => u.Id == id);
-            if (user == null) return NotFound();
-            return Ok(user);
+            var result = _service.GetUser(id);
+            if (!result.IsSuccess) return NotFound();
+            return Ok(result.Value);
+        }
+
+        [HttpPost("approve/{id}")]
+        [Authorize(Roles = "Admin")]
+        public IActionResult ApproveSeller(int id)
+        {
+            var result = _service.ApproveSeller(id);
+            if (!result.IsSuccess) return NotFound();
+            return Ok();
         }
     }
 }

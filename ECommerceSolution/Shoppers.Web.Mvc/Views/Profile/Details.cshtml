@@ -1,4 +1,4 @@
-﻿@model Shoppers.Data.Entities.UserEntity
+﻿@model App.Models.DTO.UserDto
 @{
     ViewData["Title"] = "My Profile";
 }
@@ -25,7 +25,7 @@
                 <div class="p-4 border rounded">
                     <p><strong>Full Name:</strong> @Model.FirstName @Model.LastName</p>
                     <p><strong>Email:</strong> @Model.Email</p>
-                    <p><strong>Role:</strong> @Model.Role?.Name</p>
+                    <p><strong>Role:</strong> @Model.Role</p>
                     <p><strong>Registered:</strong> @Model.CreatedAt.ToShortDateString()</p>
 
                     <a asp-action="Edit" class="btn btn-primary mt-3">Edit Profile</a>

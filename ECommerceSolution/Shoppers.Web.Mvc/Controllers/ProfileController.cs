@@ -1,62 +1,46 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿using App.Models.DTO;
+using App.Services.Abstract;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Shoppers.Data.Entities;
 using Shoppers.Web.Mvc.Models;
-using System.Net.Http.Headers;
 using System.Security.Claims;
-using System.Text.Json;
 
 namespace Shoppers.Web.Mvc.Controllers
 {
     [Authorize]
     public class ProfileController : Controller
     {
-        private readonly IHttpClientFactory _httpClientFactory;
-        private readonly JsonSerializerOptions _jsonOptions;
+        private readonly IUserService _userService;
+        private readonly IOrderService _orderService;
+        private readonly IProductService _productService;
 
-        public ProfileController(IHttpClientFactory httpClientFactory)
+        public ProfileController(IUserService userService, IOrderService orderService, IProductService productService)
         {
-            _httpClientFactory = httpClientFactory;
-            _jsonOptions = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+            _userService = userService;
+            _orderService = orderService;
+            _productService = productService;
         }
 
-        private void AddAuthHeader(HttpClient client)
-        {
-            var token = Request.Cookies["ShoppersToken"];
-            if (!string.IsNullOrEmpty(token))
-            {
-                client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
-            }
-        }
+        private string GetJwt() => Request.Cookies["ShoppersToken"]!;
 
         [HttpGet]
         public async Task<IActionResult> Details()
         {
-            var client = _httpClientFactory.CreateClient("DataApi");
-            AddAuthHeader(client);
-
-            var response = await client.GetAsync("user/me");
-            if (response.IsSuccessStatusCode)
-            {
-                var user = await JsonSerializer.DeserializeAsync<UserEntity>(await response.Content.ReadAsStreamAsync(), _jsonOptions);
-                return View(user);
-            }
+            var result = await _userService.GetMeAsync(GetJwt());
+            if (result.IsSuccess) return View(result.Value);
             return NotFound();
         }
 
         [HttpGet]
         public async Task<IActionResult> Edit()
         {
-            var client = _httpClientFactory.CreateClient("DataApi");
-            AddAuthHeader(client);
-
-            var response = await client.GetAsync("user/me");
-            if (response.IsSuccessStatusCode)
+            var result = await _userService.GetMeAsync(GetJwt());
+            if (result.IsSuccess)
             {
-                var user = await JsonSerializer.DeserializeAsync<UserEntity>(await response.Content.ReadAsStreamAsync(), _jsonOptions);
+                var user = result.Value;
                 var model = new ProfileEditViewModel
                 {
-                    FirstName = user!.FirstName,
+                    FirstName = user.FirstName,
                     LastName = user.LastName,
                     Email = user.Email
                 };
@@ -70,54 +54,38 @@ namespace Shoppers.Web.Mvc.Controllers
         {
             if (!ModelState.IsValid) return View(model);
 
-            var client = _httpClientFactory.CreateClient("DataApi");
-            AddAuthHeader(client);
+            var dto = new UserUpdateDto
+            {
+                FirstName = model.FirstName,
+                LastName = model.LastName
+            };
 
-            var userEntity = new UserEntity { FirstName = model.FirstName, LastName = model.LastName };
-            var content = new StringContent(JsonSerializer.Serialize(userEntity), System.Text.Encoding.UTF8, "application/json");
+            var result = await _userService.UpdateMeAsync(GetJwt(), dto);
 
-            var response = await client.PutAsync("user/me", content);
-
-            if (response.IsSuccessStatusCode)
+            if (result.IsSuccess)
             {
                 ViewBag.SuccessMessage = "Profile updated.";
                 return View(model);
             }
-
             return View(model);
         }
 
         [HttpGet]
         public async Task<IActionResult> MyOrders()
         {
-            var client = _httpClientFactory.CreateClient("DataApi");
-            AddAuthHeader(client);
-
-            var response = await client.GetAsync("order/myorders");
-            if (response.IsSuccessStatusCode)
-            {
-                var orders = await JsonSerializer.DeserializeAsync<List<OrderEntity>>(await response.Content.ReadAsStreamAsync(), _jsonOptions);
-                return View(orders);
-            }
-            return View(new List<OrderEntity>());
+            var result = await _orderService.GetMyOrdersAsync(GetJwt());
+            if (result.IsSuccess) return View(result.Value);
+            return View(new List<OrderDto>());
         }
 
         [Authorize(Roles = "Seller")]
         [HttpGet]
         public async Task<IActionResult> MyProducts()
         {
-            var client = _httpClientFactory.CreateClient("DataApi");
-            AddAuthHeader(client);
-
-            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            var response = await client.GetAsync($"product/seller/{userId}");
-
-            if (response.IsSuccessStatusCode)
-            {
-                var products = await JsonSerializer.DeserializeAsync<List<ProductEntity>>(await response.Content.ReadAsStreamAsync(), _jsonOptions);
-                return View(products);
-            }
-            return View(new List<ProductEntity>());
+            var sellerId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+            var result = await _productService.GetMyProductsAsync(GetJwt(), sellerId);
+            if (result.IsSuccess) return View(result.Value);
+            return View(new List<ProductDto>());
         }
     }
 }
